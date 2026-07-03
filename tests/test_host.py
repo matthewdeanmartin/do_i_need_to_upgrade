@@ -39,6 +39,6 @@ def test_default_host_default_name() -> None:
 
 
 def test_generic_host_default_cache_dir() -> None:
-    """GenericHost defaults cache_dir to a tempdir-based path."""
+    """GenericHost defaults cache_dir to a per-user cache path."""
     host = GenericHost(dist_name="app")
     assert "do_i_need_to_upgrade-app" in str(host.cache_dir)

@@ -6,8 +6,11 @@ audit runner into the small public surface documented in __init__.py.
 
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timezone
 from typing import Literal
+
+from packaging.version import InvalidVersion, Version
 
 from do_i_need_to_upgrade import background, installed, integrity_check
 from do_i_need_to_upgrade import pypi as pypi_module
@@ -19,6 +22,25 @@ from do_i_need_to_upgrade.report import Report, VersionInfo
 from do_i_need_to_upgrade.upgrade import UpgradeResult
 
 Position = Literal["start", "end", "both", "off"]
+
+
+def _is_newer(latest: str, installed: str) -> bool:
+    """Return True if latest is a strictly newer version than installed.
+
+    Falls back to string inequality only when a version cannot be parsed,
+    so a local dev build newer than PyPI is never reported as an upgrade.
+
+    Args:
+        latest: Candidate version string.
+        installed: Currently installed version string.
+
+    Returns:
+        True if latest > installed.
+    """
+    try:
+        return Version(latest) > Version(installed)
+    except InvalidVersion:
+        return latest != installed
 
 
 def _build_version_info(
@@ -59,7 +81,7 @@ def _build_version_info(
         is_cooloff = age < COOLOFF
     target_key = f"{name}=={latest}" if latest else None
     snoozed = cache.is_snoozed(target_key) if target_key else False
-    upgrade_available = bool(latest and latest != installed_version and not snoozed)
+    upgrade_available = bool(latest and _is_newer(latest, installed_version) and not snoozed)
     return VersionInfo(
         name=name,
         installed=installed_version,
@@ -76,14 +98,15 @@ def _build_version_info(
 
 def _refresh_pypi(
     host: Host,
-    names: list[str],
+    packages: dict[str, str],
     include_prereleases: bool = False,
 ) -> list[str]:
-    """Fetch missing/stale entries for the given package names.
+    """Fetch missing/stale entries for the given packages.
 
     Args:
         host: The Host instance.
-        names: Package names to refresh.
+        packages: Mapping of package name to its installed version. Each
+            package's own version is used for yanked detection.
         include_prereleases: Whether to consider pre-releases.
 
     Returns:
@@ -92,8 +115,7 @@ def _refresh_pypi(
     cache = Cache.load(host.cache_dir)
     errors: list[str] = []
     changed = False
-    installed_ver = installed.host_version(host.dist_name) or "0.0.0"
-    for name in names:
+    for name, installed_ver in packages.items():
         if cache.is_fresh(name):
             continue
         try:
@@ -122,6 +144,7 @@ def check_for_updates(
     position: Position = "start",
     allow_network: bool = True,
     include_prereleases: bool = False,
+    notify_at_exit: bool = True,
 ) -> Report:
     """Return a cached-then-refreshed freshness report.
 
@@ -130,11 +153,19 @@ def check_for_updates(
     the next start is instant. ``position="both"`` does both. ``position="off"``
     returns an empty report.
 
+    The background refresh runs on a daemon thread and is designed for
+    long-running applications: the process must stay alive for a few seconds
+    for the refresh to land in the cache. Short-lived CLI invocations should
+    use ``position="end"`` or ``position="both"`` instead.
+
     Args:
         host: Host instance. Defaults to default_host().
         position: When to do the synchronous refresh. One of start/end/both/off.
         allow_network: Whether background/synchronous network calls are permitted.
         include_prereleases: Whether to include pre-releases as upgrade candidates.
+        notify_at_exit: With ``position="start"``, also print the report to
+            stderr when the program exits. Set False when the caller displays
+            the report itself.
 
     Returns:
         A Report with the current upgrade status.
@@ -151,14 +182,14 @@ def check_for_updates(
             errors=(f"host distribution {active_host.dist_name!r} is not installed",),
         )
     deps = installed.direct_dependencies(active_host.dist_name)
-    names_to_track = [active_host.dist_name] + [name for name, _ in deps]
+    packages_to_track: dict[str, str] = {active_host.dist_name: host_installed, **dict(deps)}
 
     errors: list[str]
     if position in {"end", "both"}:
-        errors = _refresh_pypi(active_host, names_to_track, include_prereleases=include_prereleases)
+        errors = _refresh_pypi(active_host, packages_to_track, include_prereleases=include_prereleases)
         cache = Cache.load(active_host.cache_dir)
     elif allow_network:
-        stale = [n for n in names_to_track if not cache.is_fresh(n)]
+        stale = {n: v for n, v in packages_to_track.items() if not cache.is_fresh(n)}
         if stale:
 
             def run_refresh() -> None:
@@ -174,7 +205,7 @@ def check_for_updates(
 
     notes: list[str] = []
     all_infos = [host_info, *dep_infos]
-    if any(info.is_in_cooloff for info in all_infos):
+    if any(info.is_upgrade_available and info.is_in_cooloff for info in all_infos):
         notes.append("some upgrades are suppressed during a 14-day cooloff window")
 
     report = Report(
@@ -185,8 +216,8 @@ def check_for_updates(
     )
 
     # Register exit message for the background-check use case
-    if position == "start" and not report.is_empty:
-        msg = report.render_text()
+    if notify_at_exit and position == "start" and not report.is_empty:
+        msg = report.render_text(stream=sys.stderr)
         if msg:
             background.register_exit_message(msg)
 
@@ -207,7 +238,7 @@ def run_audit(host: Host | None = None, force: bool = False) -> Report:
         A Report that may include Vulnerability entries.
     """
     active_host = host or default_host()
-    report = check_for_updates(host=active_host, position="start", allow_network=False)
+    report = check_for_updates(host=active_host, position="start", allow_network=False, notify_at_exit=False)
 
     any_actionable = bool(report.host_dist and report.host_dist.actionable) or any(
         dep.actionable for dep in report.dependencies
@@ -217,6 +248,7 @@ def run_audit(host: Host | None = None, force: bool = False) -> Report:
             host_dist=report.host_dist,
             dependencies=report.dependencies,
             notes=("audit skipped: nothing to upgrade, no actionable fix possible",),
+            errors=report.errors,
         )
 
     vulns, tool = run_available_audit()
@@ -225,6 +257,7 @@ def run_audit(host: Host | None = None, force: bool = False) -> Report:
             host_dist=report.host_dist,
             dependencies=report.dependencies,
             notes=("audit skipped: no audit tool available on PATH (pip-audit, safety, uv)",),
+            errors=report.errors,
         )
 
     cache = Cache.load(active_host.cache_dir)
@@ -237,6 +270,7 @@ def run_audit(host: Host | None = None, force: bool = False) -> Report:
         dependencies=report.dependencies,
         vulnerabilities=tuple(vulns),
         notes=(f"audit tool: {tool}",),
+        errors=report.errors,
     )
 
 

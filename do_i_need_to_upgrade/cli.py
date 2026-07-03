@@ -54,43 +54,63 @@ def _dump_report(report: Report, as_json: bool) -> None:
         print("No upgrades or vulnerabilities to report.")
 
 
+EXIT_OK = 0
+EXIT_ERROR = 1
+EXIT_UPGRADES_AVAILABLE = 10
+EXIT_VULNERABILITIES = 11
+
+_EXIT_CODE_HELP = (
+    "exit codes: 0 = up to date / success, 1 = error or integrity problems, "
+    "10 = upgrades available, 11 = vulnerabilities with available fixes"
+)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build the argument parser.
+
+    Shared options live on a parent parser so they are accepted both before
+    and after the subcommand (e.g. both `--json check` and `check --json`).
 
     Returns:
         Configured ArgumentParser.
     """
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--dist", default=None, help="Distribution name to check (default: do_i_need_to_upgrade)")
+    common.add_argument("--cache-dir", default=None, dest="cache_dir", help="Override cache directory")
+    common.add_argument("--json", action="store_true", help="Emit JSON output")
+    common.add_argument("--no-network", action="store_true", dest="no_network", help="Use cache only, no PyPI fetches")
+    common.add_argument(
+        "--include-prereleases", action="store_true", dest="include_prereleases", help="Include pre-release versions"
+    )
+
     parser = argparse.ArgumentParser(
         prog="do_i_need_to_upgrade",
         description="Drop-in application self-upgrade checker and vulnerability auditor.",
+        epilog=_EXIT_CODE_HELP,
+        parents=[common],
     )
     parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
     )
-    parser.add_argument("--dist", default=None, help="Distribution name to check (default: do_i_need_to_upgrade)")
-    parser.add_argument("--cache-dir", default=None, dest="cache_dir", help="Override cache directory")
-    parser.add_argument("--json", action="store_true", help="Emit JSON output")
-    parser.add_argument("--no-network", action="store_true", dest="no_network", help="Use cache only, no PyPI fetches")
-    parser.add_argument(
-        "--include-prereleases", action="store_true", dest="include_prereleases", help="Include pre-release versions"
-    )
 
     subparsers = parser.add_subparsers(dest="command", required=False)
 
-    subparsers.add_parser("status", help="Show cached state (no network, no subprocess)")
-    subparsers.add_parser("check", help="Refresh update info for host + direct deps")
-    audit_parser = subparsers.add_parser("audit", help="Run vulnerability audit (if tool is installed)")
+    subparsers.add_parser("status", help="Show cached state (no network, no subprocess)", parents=[common])
+    subparsers.add_parser("check", help="Refresh update info for host + direct deps", parents=[common])
+    audit_parser = subparsers.add_parser(
+        "audit", help="Run vulnerability audit (if tool is installed)", parents=[common]
+    )
     audit_parser.add_argument("--force", action="store_true", help="Audit even if no upgrades are pending")
 
-    upgrade_parser = subparsers.add_parser("upgrade", help="Self-upgrade via detected install method")
+    upgrade_parser = subparsers.add_parser("upgrade", help="Self-upgrade via detected install method", parents=[common])
     upgrade_parser.add_argument("--dry-run", action="store_true", dest="dry_run", help="Print the argv, do not run")
 
-    subparsers.add_parser("integrity-check", help="Verify installed dists satisfy Requires-Dist")
-    subparsers.add_parser("clear-cache", help="Delete the sidecar cache")
+    subparsers.add_parser("integrity-check", help="Verify installed dists satisfy Requires-Dist", parents=[common])
+    subparsers.add_parser("clear-cache", help="Delete the sidecar cache", parents=[common])
 
-    snooze_parser = subparsers.add_parser("snooze", help="Snooze a specific upgrade suggestion")
+    snooze_parser = subparsers.add_parser("snooze", help="Snooze a specific upgrade suggestion", parents=[common])
     snooze_parser.add_argument("target", help="e.g. package==1.2.3")
     snooze_parser.add_argument("--days", type=int, default=14, help="Snooze duration in days (default: 14)")
 
@@ -153,7 +173,8 @@ def _cmd_check(host: Host, as_json: bool, no_network: bool, include_prereleases:
         include_prereleases: Include pre-releases.
 
     Returns:
-        Exit code.
+        EXIT_UPGRADES_AVAILABLE if actionable upgrades exist, EXIT_ERROR if
+        only errors occurred, EXIT_OK otherwise.
     """
     position: Literal["start", "end"] = "start" if no_network else "end"
     report = api.check_for_updates(
@@ -161,9 +182,17 @@ def _cmd_check(host: Host, as_json: bool, no_network: bool, include_prereleases:
         position=position,
         allow_network=not no_network,
         include_prereleases=include_prereleases,
+        notify_at_exit=False,
     )
     _dump_report(report, as_json=as_json)
-    return 0
+    has_upgrades = bool(report.host_dist and report.host_dist.actionable) or any(
+        dep.actionable for dep in report.dependencies
+    )
+    if has_upgrades:
+        return EXIT_UPGRADES_AVAILABLE
+    if report.errors:
+        return EXIT_ERROR
+    return EXIT_OK
 
 
 def _cmd_audit(host: Host, as_json: bool, force: bool) -> int:
@@ -175,11 +204,11 @@ def _cmd_audit(host: Host, as_json: bool, force: bool) -> int:
         force: Force audit even when nothing actionable.
 
     Returns:
-        1 if actionable vulnerabilities found, 0 otherwise.
+        EXIT_VULNERABILITIES if actionable vulnerabilities found, EXIT_OK otherwise.
     """
     report = api.run_audit(host=host, force=force)
     _dump_report(report, as_json=as_json)
-    return 0 if not any(v.actionable for v in report.vulnerabilities) else 1
+    return EXIT_VULNERABILITIES if any(v.actionable for v in report.vulnerabilities) else EXIT_OK
 
 
 def _cmd_upgrade(host: Host, dry_run: bool, as_json: bool) -> int:

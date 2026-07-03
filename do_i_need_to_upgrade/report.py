@@ -6,10 +6,14 @@ import os
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import TextIO
 
 
-def _can_use_color() -> bool:
-    """Return True if ANSI color output is safe to use.
+def _can_use_color(stream: TextIO) -> bool:
+    """Return True if ANSI color output is safe to use on the given stream.
+
+    Args:
+        stream: The stream the text will be written to.
 
     Returns:
         True if color output is permitted by the current environment.
@@ -20,7 +24,8 @@ def _can_use_color() -> bool:
         return False
     if os.environ.get("TERM") == "dumb":
         return False
-    return sys.stdout.isatty()
+    isatty = getattr(stream, "isatty", None)
+    return bool(isatty and isatty())
 
 
 _YELLOW = "\033[93m"
@@ -30,17 +35,18 @@ _BLUE = "\033[94m"
 _RESET = "\033[0m"
 
 
-def _c(text: str, code: str) -> str:
-    """Wrap text in an ANSI color code if color is enabled.
+def _c(text: str, code: str, stream: TextIO) -> str:
+    """Wrap text in an ANSI color code if color is enabled for stream.
 
     Args:
         text: The text to colorize.
         code: The ANSI escape code prefix.
+        stream: The stream the text will be written to.
 
     Returns:
         Colorized string or plain text if color is disabled.
     """
-    if _can_use_color():
+    if _can_use_color(stream):
         return f"{code}{text}{_RESET}"
     return text
 
@@ -116,37 +122,42 @@ class Report:
             return False
         return not any(vuln.actionable for vuln in self.vulnerabilities)
 
-    def render_text(self) -> str:
+    def render_text(self, stream: TextIO | None = None) -> str:
         """Render the report as a human-readable string.
+
+        Args:
+            stream: The stream the text is destined for; used only to decide
+                whether ANSI color is safe. Defaults to sys.stdout.
 
         Returns:
             Multi-line string; empty string if nothing to report.
         """
+        out = stream if stream is not None else sys.stdout
         lines: list[str] = []
 
         if self.host_dist and self.host_dist.actionable:
             hd = self.host_dist
-            lines.append(_c(f"[update] {hd.name} {hd.installed} -> {hd.latest} is available", _YELLOW))
+            lines.append(_c(f"[update] {hd.name} {hd.installed} -> {hd.latest} is available", _YELLOW, out))
         elif self.host_dist and self.host_dist.is_yanked:
             hd = self.host_dist
-            lines.append(_c(f"[warning] {hd.name} {hd.installed} has been YANKED from PyPI!", _RED))
+            lines.append(_c(f"[warning] {hd.name} {hd.installed} has been YANKED from PyPI!", _RED, out))
 
         upgradable = [d for d in self.dependencies if d.actionable]
         if upgradable:
             lines.append(f"[update] {len(upgradable)} dependencies have upgrades available:")
             for dep in upgradable:
-                lines.append(_c(f"  - {dep.name} {dep.installed} -> {dep.latest}", _GREEN))
+                lines.append(_c(f"  - {dep.name} {dep.installed} -> {dep.latest}", _GREEN, out))
 
         actionable_vulns = [v for v in self.vulnerabilities if v.actionable]
         if actionable_vulns:
-            lines.append(_c(f"[security] {len(actionable_vulns)} vulnerabilities with available fixes:", _RED))
+            lines.append(_c(f"[security] {len(actionable_vulns)} vulnerabilities with available fixes:", _RED, out))
             for vuln in actionable_vulns:
                 fix = ", ".join(vuln.fix_versions) or "n/a"
                 sev = vuln.severity or "unknown"
                 lines.append(f"  - {vuln.name} {vuln.installed} {vuln.advisory_id} [{sev}] fix: {fix}")
 
         for note in self.notes:
-            lines.append(_c(f"[note] {note}", _BLUE))
+            lines.append(_c(f"[note] {note}", _BLUE, out))
         for err in self.errors:
             lines.append(f"[warn] {err}")
         return "\n".join(lines)

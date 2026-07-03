@@ -96,6 +96,11 @@ class Cache:
         """Atomically write the cache to disk.
 
         Uses a tempfile + rename for crash safety. Sets file permissions to 0o600.
+
+        There is deliberately no cross-process locking: concurrent writers do a
+        whole-file load-modify-replace, so the last writer wins and may drop the
+        other's changes. os.replace only guarantees the file is never corrupt.
+        Acceptable for an advisory cache; do not store must-not-lose data here.
         """
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(self.data, indent=2, sort_keys=True)

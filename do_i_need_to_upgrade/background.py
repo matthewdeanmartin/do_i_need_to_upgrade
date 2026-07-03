@@ -4,6 +4,11 @@ Uses a daemon thread so it never blocks interpreter shutdown. Callers are
 expected to be fine with fire-and-forget: the result is written to the cache
 and picked up on the next startup.
 
+This is designed for long-running applications (the primary use case): the
+process must stay alive for a few seconds for the refresh to complete, since
+daemon threads are killed at interpreter exit. Short-lived CLI invocations
+should refresh synchronously (position="end"/"both") instead.
+
 An optional atexit handler prints an update message when the program exits.
 """
 

@@ -87,11 +87,12 @@ def detect(dist_name: str) -> InstallMethod:
     location = dist_location(dist)
     location_str = str(location).replace("\\", "/").lower() if location else ""
 
-    detected = InstallMethod.SYSTEM_PIP
+    # uv tool and pipx installs live inside managed venvs, so the path checks
+    # must run before the generic in-venv check or they can never match.
     if "/uv/tools/" in location_str:
-        detected = InstallMethod.UV_TOOL
-    elif "/pipx/venvs/" in location_str:
-        detected = InstallMethod.PIPX
+        return InstallMethod.UV_TOOL
+    if "/pipx/venvs/" in location_str:
+        return InstallMethod.PIPX
 
     in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix)
     if in_venv:
@@ -104,7 +105,7 @@ def detect(dist_name: str) -> InstallMethod:
     if user_site and user_site in location_str:
         return InstallMethod.USER_PIP
 
-    return detected
+    return InstallMethod.SYSTEM_PIP
 
 
 def upgrade_argv(method: InstallMethod, dist_name: str) -> list[str] | None:

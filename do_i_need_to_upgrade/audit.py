@@ -70,25 +70,25 @@ def _extract_json(text: str) -> object | None:
         return None
 
 
-def _parse_pip_audit(stdout: str) -> list[Vulnerability]:
+def _parse_pip_audit(stdout: str) -> list[Vulnerability] | None:
     """Parse pip-audit JSON output into Vulnerability records.
 
     Args:
         stdout: Raw stdout string from pip-audit.
 
     Returns:
-        List of Vulnerability instances.
+        List of Vulnerability instances, or None if the output is not
+        recognizable pip-audit JSON (so the tool must not be treated as
+        having run successfully).
     """
     payload = _extract_json(stdout)
-    if payload is None:
-        return []
     packages: list[dict]  # type: ignore[type-arg]
     if isinstance(payload, list):
         packages = [p for p in payload if isinstance(p, dict)]
-    elif isinstance(payload, dict):
-        packages = [p for p in payload.get("dependencies", []) if isinstance(p, dict)]
+    elif isinstance(payload, dict) and isinstance(payload.get("dependencies"), list):
+        packages = [p for p in payload["dependencies"] if isinstance(p, dict)]
     else:
-        return []
+        return None
     findings: list[Vulnerability] = []
     for pkg in packages:
         name = str(pkg.get("name", ""))
@@ -109,34 +109,36 @@ def _parse_pip_audit(stdout: str) -> list[Vulnerability]:
     return findings
 
 
-def _parse_safety(stdout: str) -> list[Vulnerability]:
+def _parse_safety(stdout: str) -> list[Vulnerability] | None:
     """Parse safety JSON output into Vulnerability records.
 
     Args:
         stdout: Raw stdout string from safety scan.
 
     Returns:
-        List of Vulnerability instances.
+        List of Vulnerability instances, or None if the output is not
+        recognizable safety JSON.
     """
     payload = _extract_json(stdout)
-    if not isinstance(payload, dict):
-        return []
-    vulns = payload.get("vulnerabilities") or []
+    if not isinstance(payload, dict) or "vulnerabilities" not in payload:
+        return None
+    vulns = payload.get("vulnerabilities")
+    if not isinstance(vulns, list):
+        return None
     findings: list[Vulnerability] = []
-    if isinstance(vulns, list):
-        for vuln in vulns:
-            if not isinstance(vuln, dict):
-                continue
-            findings.append(
-                Vulnerability(
-                    name=str(vuln.get("package_name", "")),
-                    installed=str(vuln.get("analyzed_version", "")),
-                    advisory_id=str(vuln.get("vulnerability_id", "")),
-                    severity=(str(vuln["severity"]).lower() if vuln.get("severity") else None),
-                    fix_versions=tuple(str(v) for v in vuln.get("fixed_versions") or ()),
-                    source="safety",
-                )
+    for vuln in vulns:
+        if not isinstance(vuln, dict):
+            continue
+        findings.append(
+            Vulnerability(
+                name=str(vuln.get("package_name", "")),
+                installed=str(vuln.get("analyzed_version", "")),
+                advisory_id=str(vuln.get("vulnerability_id", "")),
+                severity=(str(vuln["severity"]).lower() if vuln.get("severity") else None),
+                fix_versions=tuple(str(v) for v in vuln.get("fixed_versions") or ()),
+                source="safety",
             )
+        )
     return findings
 
 
@@ -147,50 +149,64 @@ def _runner_uv_audit() -> tuple[list[Vulnerability], str | None]:
     """Run uv pip audit and return (vulnerabilities, tool_name_or_None).
 
     Returns:
-        Tuple of findings and tool name, or ([], None) if unavailable.
+        Tuple of findings and tool name, or ([], None) if unavailable or the
+        output is not valid audit JSON (e.g. the uv on PATH lacks an audit
+        subcommand — a usage error must not be reported as a clean audit).
     """
     if not _which("uv"):
         return [], None
     stdout, _stderr, rc = _run_cmd(["uv", "pip", "audit", "--format", "json"])
     if rc is None:
         return [], None
-    return _parse_pip_audit(stdout), "uv-audit"
+    findings = _parse_pip_audit(stdout)
+    if findings is None:
+        return [], None
+    return findings, "uv-audit"
 
 
 def _runner_pip_audit() -> tuple[list[Vulnerability], str | None]:
     """Run pip-audit and return (vulnerabilities, tool_name_or_None).
 
     Returns:
-        Tuple of findings and tool name, or ([], None) if unavailable.
+        Tuple of findings and tool name, or ([], None) if unavailable or the
+        output is not valid pip-audit JSON.
     """
     if not _which("pip-audit"):
         return [], None
     stdout, _stderr, rc = _run_cmd(["pip-audit", "--format", "json"])
-    if rc is None:
+    findings = _parse_pip_audit(stdout) if rc is not None else None
+    if findings is None:
         stdout, _stderr, rc = _run_cmd([sys.executable, "-m", "pip_audit", "--format", "json"])
-    if rc is None:
+        findings = _parse_pip_audit(stdout) if rc is not None else None
+    if findings is None:
         return [], None
-    return _parse_pip_audit(stdout), "pip-audit"
+    return findings, "pip-audit"
 
 
 def _runner_safety() -> tuple[list[Vulnerability], str | None]:
     """Run safety scan and return (vulnerabilities, tool_name_or_None).
 
     Returns:
-        Tuple of findings and tool name, or ([], None) if unavailable.
+        Tuple of findings and tool name, or ([], None) if unavailable or the
+        output is not valid safety JSON.
     """
     if not _which("safety"):
         return [], None
     stdout, _stderr, rc = _run_cmd(["safety", "scan", "--output", "json"])
     if rc is None:
         return [], None
-    return _parse_safety(stdout), "safety"
+    findings = _parse_safety(stdout)
+    if findings is None:
+        return [], None
+    return findings, "safety"
 
 
 def run_available_audit() -> tuple[list[Vulnerability], str | None]:
     """Run the first available audit tool and return (vulnerabilities, tool_name).
 
-    Tries uv audit first, then pip-audit, then safety.
+    Tries uv audit first, then pip-audit, then safety. A tool that is on PATH
+    but fails to produce recognizable audit JSON is skipped, so the next tool
+    still gets a chance to run.
 
     Returns:
         Tuple of Vulnerability list and the tool name used, or ([], None) if

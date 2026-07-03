@@ -111,15 +111,21 @@ def fetch_package_json(name: str, timeout: float = TIMEOUT_SECONDS) -> dict:  # 
 def _is_yanked_release(files: object) -> bool:
     """Return True if all release files are marked yanked.
 
+    PyPI yanks a release by yanking every file in it; a release with a mix of
+    yanked and non-yanked files is still installable.
+
     Args:
         files: The release file list from PyPI JSON.
 
     Returns:
         True if the release is yanked.
     """
-    if not isinstance(files, list) or not files:
+    if not isinstance(files, list):
         return False
-    return any(f.get("yanked", False) for f in files if isinstance(f, dict))
+    dict_files = [f for f in files if isinstance(f, dict)]
+    if not dict_files:
+        return False
+    return all(f.get("yanked", False) for f in dict_files)
 
 
 def parse_version_detail(
@@ -128,8 +134,6 @@ def parse_version_detail(
     include_prereleases: bool = False,
 ) -> VersionDetail:
     """Extract full version detail from a PyPI JSON payload.
-
-    Synthesises tuochat's reliability with bash2yaml's prerelease/yanked handling.
 
     Args:
         payload: The parsed PyPI JSON payload.
@@ -153,9 +157,11 @@ def parse_version_detail(
     current_files = releases.get(current_version) or []
     is_yanked = _is_yanked_release(current_files)
 
-    # Collect stable and prerelease candidates
-    stable_candidates: list[Version] = []
-    prerelease_candidates: list[Version] = []
+    # Collect stable and prerelease candidates, keeping the raw release key
+    # alongside the parsed Version: `releases` is keyed by the exact string
+    # PyPI serves, which may differ from the normalized str(Version) form.
+    stable_candidates: list[tuple[Version, str]] = []
+    prerelease_candidates: list[tuple[Version, str]] = []
 
     for v_str, files in releases.items():
         if not isinstance(v_str, str):
@@ -170,23 +176,25 @@ def parse_version_detail(
         if v.is_devrelease:
             continue  # skip dev releases
         if v.is_prerelease:
-            prerelease_candidates.append(v)
+            prerelease_candidates.append((v, v_str))
         else:
-            stable_candidates.append(v)
+            stable_candidates.append((v, v_str))
 
-    latest_stable: str | None = str(max(stable_candidates)) if stable_candidates else None
+    def _newest(candidates: list[tuple[Version, str]]) -> tuple[Version, str]:
+        return max(candidates, key=lambda pair: pair[0])
+
+    latest_stable: str | None = _newest(stable_candidates)[1] if stable_candidates else None
 
     # Determine effective latest for upgrade comparison
-    effective_v: Version | None = None
+    effective: tuple[Version, str] | None = None
     if include_prereleases and prerelease_candidates:
-        all_candidates = stable_candidates + prerelease_candidates
-        effective_v = max(all_candidates)
+        effective = _newest(stable_candidates + prerelease_candidates)
     elif stable_candidates:
-        effective_v = max(stable_candidates)
+        effective = _newest(stable_candidates)
 
-    effective_latest = str(effective_v) if effective_v else latest_field
-    is_prerelease = bool(effective_v and effective_v.is_prerelease)
-    is_dev = bool(effective_v and effective_v.is_devrelease)
+    effective_latest = effective[1] if effective else latest_field
+    is_prerelease = bool(effective and effective[0].is_prerelease)
+    is_dev = bool(effective and effective[0].is_devrelease)
 
     # Extract published timestamp for the effective latest
     latest_files = releases.get(effective_latest) or []

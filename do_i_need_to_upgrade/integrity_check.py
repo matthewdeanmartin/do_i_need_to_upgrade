@@ -1,201 +1,48 @@
-"""pip-check-style integrity verification using importlib.metadata only."""
+"""pip-check-style integrity verification.
+
+Walks installed distributions via importlib.metadata and validates each
+Requires-Dist line with the ``packaging`` library (already a runtime
+dependency), so specifiers, epochs, post/local versions, and environment
+markers all follow PEP 440/508 exactly.
+"""
 
 from __future__ import annotations
 
-import platform
-import re
-import sys
 from importlib import metadata
 
-SPECIFIER_PATTERN = re.compile(r"(?P<op>==|!=|<=|>=|<|>|~=|===)\s*(?P<version>[A-Za-z0-9][A-Za-z0-9._+!-]*)")
-NAME_PATTERN = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
-
-# Marker variable values for the current interpreter, per PEP 508 / PEP 345.
-MARKER_ENV: dict[str, str] = {
-    "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
-    "python_full_version": platform.python_version(),
-    "os_name": __import__("os").name,
-    "sys_platform": sys.platform,
-    "platform_system": platform.system(),
-    "platform_machine": platform.machine(),
-    "implementation_name": sys.implementation.name,
-}
-
-# Regex to match a single marker comparison: <var> <op> <quoted-value>
-MARKER_CMP_PATTERN = re.compile(
-    r'(?P<var>[a-z_]+)\s*(?P<op>==|!=|<|<=|>|>=)\s*["\'](?P<val>[^"\']*)["\']'
-    r'|["\'](?P<lval>[^"\']*)["\']?\s*(?P<rop>==|!=|<|<=|>|>=)\s*(?P<rvar>[a-z_]+)'
-)
+from packaging.markers import InvalidMarker, UndefinedComparison, UndefinedEnvironmentName
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion
 
 
-def split_requirement(requirement: str) -> tuple[str, str, str | None] | None:
-    """Return (name, specifier_string, marker_string) or None.
+def _marker_applies(requirement: Requirement) -> bool:
+    """Return True if the requirement's marker applies to this environment.
+
+    ``extra`` markers evaluate against an empty extra, so optional-extra
+    requirements are skipped. Markers that cannot be evaluated are treated
+    as applicable so a required dependency is never silently missed.
 
     Args:
-        requirement: A Requires-Dist string to parse.
+        requirement: The parsed requirement.
 
     Returns:
-        Tuple of (name, specifier, marker) or None if unparseable.
+        True if the requirement applies to the current environment.
     """
-    if ";" in requirement:
-        head, marker = requirement.split(";", 1)
-        marker = marker.strip()
-    else:
-        head, marker = requirement, None
-    head = head.strip()
-    if not head:
-        return None
-    match = NAME_PATTERN.match(head)
-    if not match:
-        return None
-    name = match.group(1)
-    rest = head[match.end() :]
-    rest = rest.split("[", 1)[0] if "[" in rest else rest
-    rest = rest.replace("(", "").replace(")", "").strip()
-    return name, rest, marker
-
-
-def version_tuple(version: str) -> tuple[int, ...]:
-    """Convert a version string to a numeric tuple for comparison.
-
-    Args:
-        version: Version string like '1.2.3'.
-
-    Returns:
-        Tuple of ints, e.g. (1, 2, 3).
-    """
-    parts: list[int] = []
-    for chunk in re.split(r"[.+-]", version):
-        match = re.match(r"(\d+)", chunk)
-        if not match:
-            break
-        parts.append(int(match.group(1)))
-    return tuple(parts) or (0,)
-
-
-def satisfies(op: str, installed: str, wanted: str) -> bool:
-    """Return True if installed satisfies the given version constraint.
-
-    Args:
-        op: The comparison operator string.
-        installed: The installed version string.
-        wanted: The required version string.
-
-    Returns:
-        True if the constraint is satisfied.
-    """
-    if op in {"==", "===", "!="}:
-        return installed == wanted if op in {"==", "==="} else installed != wanted
-    lhs = version_tuple(installed)
-    rhs = version_tuple(wanted)
-    if op == "~=":
-        if len(rhs) < 2:
-            return lhs >= rhs
-        upper = rhs[:-1]
-        upper_plus = (*upper[:-1], upper[-1] + 1)
-        return lhs >= rhs and lhs[: len(upper_plus)] < upper_plus
-    return {
-        ">=": lhs >= rhs,
-        ">": lhs > rhs,
-        "<=": lhs <= rhs,
-        "<": lhs < rhs,
-    }.get(op, True)
-
-
-def check_specifier(installed: str, specifier: str) -> bool:
-    """Return True if installed satisfies all specifiers in the string.
-
-    Args:
-        installed: The installed version string.
-        specifier: Comma-separated specifier string.
-
-    Returns:
-        True if all specifiers are satisfied.
-    """
-    if not specifier:
+    if requirement.marker is None:
         return True
-    for part in specifier.split(","):
-        match = SPECIFIER_PATTERN.search(part)
-        if not match:
-            continue
-        if not satisfies(match.group("op"), installed, match.group("version")):
-            return False
-    return True
-
-
-def normalize(name: str) -> str:
-    """PEP 503 canonical name: lowercase, runs of [-_.] -> '-'.
-
-    Args:
-        name: The package name to normalize.
-
-    Returns:
-        Normalized package name.
-    """
-    return re.sub(r"[-_.]+", "-", name).lower()
-
-
-def marker_applies(marker: str) -> bool:
-    """Return True if the marker expression applies to the current environment.
-
-    Evaluates only simple single-comparison markers whose variable is in
-    MARKER_ENV.  Compound expressions joined by ``and``/``or``, and any
-    ``extra`` marker, are treated as applicable (True) so we never silently
-    miss a required dependency.
-
-    Args:
-        marker: The marker expression string.
-
-    Returns:
-        True if the marker applies to the current environment.
-    """
-    # Extra markers are never about installed packages; skip check entirely.
-    if "extra" in marker:
-        return False
-
-    # If the expression contains boolean operators, fall back to True so we
-    # don't accidentally skip a requirement on the current platform.
-    if " and " in marker.lower() or " or " in marker.lower():
+    try:
+        return requirement.marker.evaluate({"extra": ""})
+    except (InvalidMarker, UndefinedComparison, UndefinedEnvironmentName):
         return True
-
-    match = MARKER_CMP_PATTERN.search(marker)
-    if not match:
-        return True  # unknown format → assume applicable
-
-    # Normalise regardless of which capture group fired.
-    if match.group("var"):
-        var, op, val = match.group("var"), match.group("op"), match.group("val")
-    else:
-        var, op, val = match.group("rvar"), match.group("rop"), match.group("lval")
-        # operands are reversed → flip operator
-        flip = {"<": ">", ">": "<", "<=": ">=", ">=": "<="}
-        op = flip.get(op, op)
-
-    env_val = MARKER_ENV.get(var)
-    if env_val is None:
-        return True  # unknown variable → assume applicable
-
-    # Compare using version tuples for version-like variables, else string equality.
-    applicable = True
-    version_vars = {"python_version", "python_full_version"}
-    if var in version_vars:
-        applicable = satisfies(op, env_val, val)
-    elif op == "==":
-        applicable = env_val == val
-    elif op == "!=":
-        applicable = env_val != val
-    return applicable  # relational string comparisons are unusual; assume applicable
 
 
 def run() -> list[str]:
     """Return a list of human-readable integrity problems. Empty = clean.
 
-    Requirements with environment markers are evaluated against the current
-    interpreter.  Only requirements that apply to this environment are checked.
-    Markers that cannot be evaluated (compound expressions, unknown variables)
-    are treated as applicable so we never silently miss a required dependency.
-    ``extra`` markers are skipped because they describe optional install groups,
-    not runtime requirements.
+    Only requirements whose environment markers apply to the current
+    interpreter are checked. ``extra`` requirements are skipped because they
+    describe optional install groups, not runtime requirements.
 
     Returns:
         List of problem description strings. Empty list means everything is clean.
@@ -206,25 +53,31 @@ def run() -> list[str]:
     for dist in all_dists:
         name = dist.metadata["Name"] if dist.metadata else None
         if name:
-            installed_versions[normalize(name)] = dist.version
+            installed_versions[canonicalize_name(name)] = dist.version
 
     for dist in all_dists:
         origin = dist.metadata["Name"] if dist.metadata else None
         if not origin:
             continue
-        for requirement in dist.requires or []:
-            parsed = split_requirement(requirement)
-            if not parsed:
+        for requirement_str in dist.requires or []:
+            try:
+                requirement = Requirement(requirement_str)
+            except InvalidRequirement:
                 continue
-            req_name, specifier, marker = parsed
-            if marker and not marker_applies(marker):
+            if not _marker_applies(requirement):
                 continue
-            installed = installed_versions.get(normalize(req_name))
+            installed = installed_versions.get(canonicalize_name(requirement.name))
             if not installed:
-                problems.append(f"{origin} requires {req_name} which is not installed")
+                problems.append(f"{origin} requires {requirement.name} which is not installed")
                 continue
-            if not check_specifier(installed, specifier):
-                problems.append(f"{origin} requires {req_name}{specifier} but {installed} is installed")
+            try:
+                satisfied = requirement.specifier.contains(installed, prereleases=True)
+            except InvalidVersion:
+                continue
+            if not satisfied:
+                problems.append(
+                    f"{origin} requires {requirement.name}{requirement.specifier} but {installed} is installed"
+                )
     return problems
 
 
