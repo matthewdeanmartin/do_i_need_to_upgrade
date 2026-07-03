@@ -90,7 +90,7 @@ and pass `settings=` to any API function or the integrate helpers.
 ### Want no dependencies at all? Vendor it
 
 Prefer not to add a dependency? Two supported paths
-(see [docs/usage/vendoring.md](docs/usage/vendoring.md)):
+(see [docs/usage/vendoring.md](https://github.com/matthewdeanmartin/do_i_need_to_upgrade/blob/main/docs/usage/vendoring.md)):
 
 - **Vendor the full package** — internal imports are relative, so copying
   `do_i_need_to_upgrade/` into `yourapp/_vendor/` just works (needs
