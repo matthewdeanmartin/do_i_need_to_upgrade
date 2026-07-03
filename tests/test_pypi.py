@@ -103,6 +103,6 @@ def test_parse_version_detail_skip_yanked_latest() -> None:
 
 def test_parse_version_detail_missing_info_version() -> None:
     """Missing info.version raises PypiError."""
-    payload = {"info": {}, "releases": {}}
+    payload: dict[str, object] = {"info": {}, "releases": {}}
     with pytest.raises(PypiError):
         parse_version_detail(payload, current_version="1.0.0")

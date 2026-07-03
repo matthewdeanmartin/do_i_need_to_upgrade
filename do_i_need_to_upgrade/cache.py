@@ -120,7 +120,11 @@ class Cache:
         Returns:
             Dict with keys latest, published, fetched; or None if not cached.
         """
-        return self.data.get("pypi", {}).get(name)  # type: ignore[return-value]
+        packages = self.data.get("pypi")
+        if not isinstance(packages, dict):
+            return None
+        entry = packages.get(name)
+        return entry if isinstance(entry, dict) else None
 
     def put_package(self, name: str, latest: str, published: datetime | None) -> None:
         """Store package metadata in the cache.

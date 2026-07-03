@@ -105,7 +105,7 @@ def fetch_package_json(name: str, timeout: float = TIMEOUT_SECONDS) -> dict:  # 
         raise PypiError(f"pypi json parse failed for {safe_name}: {exc}") from exc
     if not isinstance(payload, dict):
         raise PypiError(f"pypi response for {safe_name} is not a JSON object")
-    return payload  # type: ignore[return-value]
+    return payload
 
 
 def _is_yanked_release(files: object) -> bool:

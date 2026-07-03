@@ -15,6 +15,7 @@ from do_i_need_to_upgrade import api
 from do_i_need_to_upgrade.__about__ import __version__
 from do_i_need_to_upgrade.cache import Cache
 from do_i_need_to_upgrade.host import GenericHost, Host, default_host
+from do_i_need_to_upgrade.report import Report
 
 
 def _json_default(value: object) -> object:
@@ -32,11 +33,11 @@ def _json_default(value: object) -> object:
     if isinstance(value, datetime):
         return value.isoformat()
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return dataclasses.asdict(value)  # type: ignore[call-overload]
+        return dataclasses.asdict(value)
     raise TypeError(f"cannot serialize {type(value).__name__}")
 
 
-def _dump_report(report: api.Report, as_json: bool) -> None:
+def _dump_report(report: Report, as_json: bool) -> None:
     """Print a Report as text or JSON.
 
     Args:
@@ -44,7 +45,7 @@ def _dump_report(report: api.Report, as_json: bool) -> None:
         as_json: If True, output JSON; otherwise plain text.
     """
     if as_json:
-        print(json.dumps(dataclasses.asdict(report), default=_json_default, indent=2))  # type: ignore[call-overload]
+        print(json.dumps(dataclasses.asdict(report), default=_json_default, indent=2))
         return
     text = report.render_text()
     if text:
