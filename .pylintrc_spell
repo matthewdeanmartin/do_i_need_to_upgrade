@@ -1,0 +1,9 @@
+[SPELLING]
+spelling-dict=en_US
+spelling-private-dict-file=private_dictionary.txt
+
+[MESSAGES CONTROL]
+disable=all
+# disable=all alone leaves pylint with nothing enabled, so it reports
+# "No files to lint" and exits 32. Explicitly enable the spelling checks.
+enable=wrong-spelling-in-comment,wrong-spelling-in-docstring

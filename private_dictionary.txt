@@ -1,0 +1,10 @@
+pypi
+stdlib
+snooze
+snoozes
+upgradable
+yank
+yanked
+cooloff
+dinu
+oomph
