@@ -22,8 +22,8 @@ Implementation notes:
   _diu_-prefixed.
 - User config path: XDG_CONFIG_HOME/~/.config on POSIX, %APPDATA% on
   Windows. Keys: disabled, no_network, disabled_for = [names].
-- 3.10: TOML files silently ignored (tomllib import guarded; mypy override
-  in pyproject for the 3.10 target).
+- 3.10: TOML parsing works via a `tomli` fallback; `tomllib` remains the
+  stdlib path on 3.11+.
 - Package-data TOML lookup is via explicit Settings.from_toml(path) — no
   importlib.resources magic.
 

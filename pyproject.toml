@@ -8,7 +8,7 @@ keywords = ["do_i_need_to_upgrade", "upgrade", "self-update", "pypi", "update-ch
 license = "MIT"
 requires-python = ">=3.10"
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 1 - Planning",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -18,8 +18,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
 ]
-dependencies = ["packaging>=23.0"]
+dependencies = [
+    "packaging>=23.0",
+    "tomli>=2.0.1; python_version < '3.11'",
+]
 
 [project.urls]
 Repository = "https://github.com/matthewdeanmartin/do_i_need_to_upgrade"
@@ -50,14 +54,14 @@ include = ["/README.md", "LICENSE", "/do_i_need_to_upgrade", "/tests"]
 
 [dependency-groups]
 dev = [
-    "bandit>=1.9.4",
-    "black>=26.0.0",
-    "isort>=6.0.0",
-    "jiggle-version>=2.1.0",
-    "keepachangelog-manager-fork[all]>=6.5.0",
-    "codespell>=2.4.1",
-    "mdformat>=1.0.0",
-    "metametameta>=0.1.5",
+    "bandit>=1.9.4; python_version >= '3.11'",
+    "black>=26.0.0; python_version >= '3.11'",
+    "isort>=6.0.0; python_version >= '3.11'",
+    "jiggle-version>=2.1.0; python_version >= '3.11'",
+    "keepachangelog-manager-fork[all]>=6.5.0; python_version < '3.15'",
+    "codespell>=2.4.1; python_version >= '3.11'",
+    "mdformat>=1.0.0; python_version >= '3.11'",
+    "metametameta>=0.1.5; python_version >= '3.11'",
     "mypy>=1.18.0",
     "pylint[spelling]>=4.0.0",
     "pytest>=8.4.0",
@@ -70,7 +74,7 @@ dev = [
     "hypothesis>=6.100.0",
     "ruff>=0.12.0",
     "pre-commit>=4.0.0",
-    "pip-audit>=2.7.0",
+    "pip-audit>=2.7.0; python_version >= '3.11'",
     "tox>=4.0",
     "tox-uv>=1.0",
     "gha-update>=0.1.0; python_version >= '3.12'",
@@ -81,21 +85,21 @@ dev = [
     "pyenchant>=3.2.2",
     "mkdocs>=1.6.0",
     "mkdocstrings[python]>=0.26.0",
-    "git2md>=0.1.0",
+    "git2md>=0.1.0; python_version >= '3.11'",
     "pyclean>=3.0.0",
-    "vulture>=2.11",
-    "deadcode>=2.4.0",
-    "griffe>=1.0.0",
+    "vulture>=2.11; python_version >= '3.11'",
+    "deadcode>=2.4.0; python_version >= '3.11'",
+    "griffe>=1.0.0; python_version >= '3.11'",
     "pydoclint>=0.8.0",
     "pydoctest==0.2.1",
-    "refurb>=2.0.0",
+    "refurb>=2.0.0; python_version >= '3.11'",
     "crosshair-tool>=0.0.80",
-    "deptry>=0.20.0",
-    "import-linter>=2.0",
+    "deptry>=0.20.0; python_version >= '3.11'",
+    "import-linter>=2.0; python_version < '3.15'",
     "packaging>=23.0",
 ]
 release = [
-    "troml-dev-status>=0.6.0",
+    "troml-dev-status>=0.6.0; python_version >= '3.11'",
 ]
 
 [tool.uv]
@@ -149,7 +153,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 disallow_untyped_calls = false
 
-# tomllib is stdlib from 3.11; settings.py guards the import for 3.10.
+# tomllib is stdlib from 3.11; settings.py falls back to tomli on 3.10.
 [[tool.mypy.overrides]]
 module = "tomllib"
 ignore_missing_imports = true

@@ -22,4 +22,4 @@ __keywords__ = ["do_i_need_to_upgrade", "upgrade", "self-update", "pypi", "updat
 __license__ = "MIT"
 __requires_python__ = ">=3.10"
 __status__ = "3 - Alpha"
-__dependencies__ = ["packaging>=23.0"]
+__dependencies__ = ["packaging>=23.0", "tomli>=2.0.1; python_version < '3.11'"]

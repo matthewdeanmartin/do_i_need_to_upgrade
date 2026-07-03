@@ -40,10 +40,7 @@ _NOTIFY_MODES = ("exit-message", "return-only")
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
-    """Parse a TOML file, degrading to empty on py3.10 or any error.
-
-    tomllib is stdlib from 3.11; on 3.10 config files are silently ignored
-    (documented limitation — programmatic Settings still work everywhere).
+    """Parse a TOML file, degrading to empty on any read or parse error.
 
     Args:
         path: Path to the TOML file.
@@ -54,7 +51,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
     try:
         import tomllib  # pylint: disable=import-outside-toplevel
     except ImportError:
-        return {}
+        import tomli as tomllib  # pylint: disable=import-outside-toplevel
     try:
         with path.open("rb") as fh:
             data = tomllib.load(fh)
