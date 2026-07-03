@@ -1,6 +1,22 @@
 # Phase 4 — Vendoring instructions + single-file "lite" build
 
-Status: SPEC ONLY — not started. Do this LAST (wants a stable codebase).
+Status: IMPLEMENTED (2026-07-03). Deviations noted here.
+
+Implementation notes:
+- All package-internal imports converted to relative (`from . import x`) —
+  the package is copy-paste vendorable. Docs: docs/usage/vendoring.md.
+- `scripts/build_lite.py` generates `dist/diu_lite.py` (~350 lines) from
+  `# lite: begin/end <name>` regions in cache.py (time-helpers) and pypi.py
+  (pypi-constants, pypi-error, pypi-fetch), plus a lite-only template
+  (naive version tuple compare with trailing-zero normalization, tiny JSON
+  cache, `check_for_updates(dist, cache_dir=None, ttl_hours=24, sync=False)`).
+- Lite skips non-numeric release keys entirely, so pre/dev/post releases are
+  never upgrade candidates (documented in the generated header).
+- Lite honors DO_I_NEED_TO_UPGRADE=off / no-network (same kill switch).
+- The generated file is NOT committed; `make build-lite` produces it, and
+  `tests/test_lite.py` regenerates + exercises it every test run (including
+  an AST check that all imports are stdlib) — that is the anti-drift gate.
+- `make prerelease` now includes build-lite.
 
 ## Tier 1: vendoring the full package (docs + one code change)
 

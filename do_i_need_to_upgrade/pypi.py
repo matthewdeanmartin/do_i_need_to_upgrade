@@ -20,15 +20,21 @@ from typing import NamedTuple
 from packaging.version import InvalidVersion, Version
 from packaging.version import parse as parse_version
 
+# lite: begin pypi-constants
 PYPI_HOST = "pypi.org"
 PYPI_URL = "https://pypi.org/pypi/{name}/json"
 USER_AGENT = "do-i-need-to-upgrade/1 (+https://github.com/matthewdeanmartin/do_i_need_to_upgrade)"
 TIMEOUT_SECONDS = 5.0
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$")
+# lite: end pypi-constants
 
 
+# lite: begin pypi-error
 class PypiError(RuntimeError):
     """PyPI fetch or parse failure."""
+
+
+# lite: end pypi-error
 
 
 class VersionDetail(NamedTuple):
@@ -42,6 +48,7 @@ class VersionDetail(NamedTuple):
     is_dev: bool
 
 
+# lite: begin pypi-fetch
 def validate_name(name: str) -> str:
     """Validate a PyPI package name.
 
@@ -77,12 +84,39 @@ def validate_pypi_url(url: str) -> str:
     return url
 
 
-def fetch_package_json(name: str, timeout: float = TIMEOUT_SECONDS) -> dict:  # type: ignore[type-arg]
-    """Fetch and parse pypi.org's JSON metadata for a package.
+def validate_https_url(url: str) -> str:
+    """Validate that a URL uses HTTPS and has a hostname.
+
+    Used for custom index URLs; the default pypi.org template additionally
+    pins the hostname via validate_pypi_url.
+
+    Args:
+        url: URL to validate.
+
+    Returns:
+        The validated URL.
+
+    Raises:
+        PypiError: If the URL is not https or lacks a hostname.
+    """
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise PypiError(f"refusing to fetch non-HTTPS index URL: {url!r}")
+    return url
+
+
+def fetch_package_json(
+    name: str,
+    timeout: float = TIMEOUT_SECONDS,
+    url_template: str = PYPI_URL,
+) -> dict:  # type: ignore[type-arg]
+    """Fetch and parse a package index's JSON metadata for a package.
 
     Args:
         name: The PyPI package name.
         timeout: Request timeout in seconds.
+        url_template: JSON API URL with a ``{name}`` placeholder. Defaults to
+            pypi.org; custom (private index) templates must be HTTPS.
 
     Returns:
         Parsed JSON payload as a dict.
@@ -91,7 +125,11 @@ def fetch_package_json(name: str, timeout: float = TIMEOUT_SECONDS) -> dict:  # 
         PypiError: On network failure or invalid response.
     """
     safe_name = validate_name(name)
-    url = validate_pypi_url(PYPI_URL.format(name=safe_name))
+    url = url_template.format(name=safe_name)
+    if url_template == PYPI_URL:
+        validate_pypi_url(url)
+    else:
+        validate_https_url(url)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
     context = ssl.create_default_context()
     try:
@@ -126,6 +164,9 @@ def _is_yanked_release(files: object) -> bool:
     if not dict_files:
         return False
     return all(f.get("yanked", False) for f in dict_files)
+
+
+# lite: end pypi-fetch
 
 
 def parse_version_detail(
@@ -232,6 +273,7 @@ def get_version_detail(
     current_version: str,
     include_prereleases: bool = False,
     timeout: float = TIMEOUT_SECONDS,
+    url_template: str = PYPI_URL,
 ) -> VersionDetail:
     """Fetch and parse full version detail for a package from PyPI.
 
@@ -240,6 +282,7 @@ def get_version_detail(
         current_version: Currently installed version (for yanked detection).
         include_prereleases: Whether to consider pre-releases as upgrades.
         timeout: Request timeout in seconds.
+        url_template: JSON API URL template (see fetch_package_json).
 
     Returns:
         A VersionDetail with all fields populated.
@@ -247,7 +290,7 @@ def get_version_detail(
     Raises:
         PypiError: On network failure or malformed response.
     """
-    payload = fetch_package_json(name, timeout=timeout)
+    payload = fetch_package_json(name, timeout=timeout, url_template=url_template)
     return parse_version_detail(payload, current_version, include_prereleases=include_prereleases)
 
 
@@ -268,4 +311,14 @@ def get_latest(name: str, timeout: float = TIMEOUT_SECONDS) -> tuple[str, dateti
     return detail.latest, detail.published
 
 
-__all__ = ["PypiError", "VersionDetail", "fetch_package_json", "get_latest", "get_version_detail", "validate_name"]
+__all__ = [
+    "PYPI_URL",
+    "PypiError",
+    "VersionDetail",
+    "fetch_package_json",
+    "get_latest",
+    "get_version_detail",
+    "validate_https_url",
+    "validate_name",
+    "validate_pypi_url",
+]

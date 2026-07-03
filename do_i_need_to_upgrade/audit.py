@@ -12,7 +12,7 @@ import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
 
-from do_i_need_to_upgrade.report import Vulnerability
+from .report import Vulnerability
 
 AUDIT_TIMEOUT = 60
 

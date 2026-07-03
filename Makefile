@@ -27,7 +27,7 @@ ABOUT_FILE := do_i_need_to_upgrade/__about__.py
 	typecheck typecheck-mypy \
 	metadata metadata-check version-check dev-status \
 	gha-validate gha-pin gha-upgrade publish-gha \
-	prerelease publish-check publish \
+	build-lite prerelease publish-check publish \
 	check check-ci \
 	help
 
@@ -74,6 +74,8 @@ help:
 	@echo "  gha-pin                Pin GHA action refs to commit SHAs"
 	@echo "  gha-upgrade            Pin + validate (gha-pin then gha-validate)"
 	@echo "  publish-gha            Dispatch the GitHub Actions publish workflow"
+	@echo ""
+	@echo "  build-lite             Generate dist/diu_lite.py (single-file lite build)"
 	@echo ""
 	@echo "  check                  Full local quality gate"
 	@echo "  check-ci               CI quality gate (no formatting mutations)"
@@ -290,6 +292,9 @@ publish-gha:
 
 # ── Release gates ─────────────────────────────────────────────────────────────
 
+build-lite:
+	@$(UV) run python scripts/build_lite.py
+
 publish-check:
 	@$(UV) build
 	@echo "Distribution built — inspect dist/ before publishing."
@@ -299,11 +304,11 @@ publish:
 	@echo "Publishing via uv (set UV_PUBLISH_TOKEN or configure OIDC trusted publishing)"
 	@$(UV) publish
 
-check: format-check lint-check security test typecheck metadata-check version-check
+check: format-check lint-check security test smoke typecheck metadata-check version-check
 	@echo "All checks passed."
 
-check-ci: format-check lint-check security test-ci typecheck metadata-check version-check
+check-ci: format-check lint-check security test-ci smoke typecheck metadata-check version-check
 	@echo "CI checks passed."
 
-prerelease: check dev-status docs-check smoke spell publish-check
+prerelease: check dev-status docs-check smoke spell build-lite publish-check
 	@echo "Pre-release checks complete — ready to publish."

@@ -1,7 +1,21 @@
 # Phase 2 — Checking other apps/packages (the bash use case)
 
-Status: SPEC ONLY — not started.
+Status: IMPLEMENTED (2026-07-03). Deviations from spec noted inline below.
 Prerequisite: Phase 1 (correctness fixes 1–17) is DONE (2026-07-03).
+
+Implementation notes:
+- `resolvers.py` holds Target, resolve/resolve_all, the uv/pipx listing
+  caches (lru_cache, once per process), and parse_requirements_file.
+- `api.check_targets(targets, host=...)` + `api.upgrade_target(target)`;
+  exported from the package root along with Target/resolve/resolve_all.
+- Watch list lives in the cache under the additive "watch" key
+  (Cache.watch_add/watch_remove/watch_list).
+- `--quiet` applies to `check` and `audit`.
+- Gotcha fixed during implementation: argparse subparsers copy their own
+  namespace over the root one, so shared flags use default=SUPPRESS and are
+  read via getattr — otherwise `--cache-dir X check` loses its value.
+- Not-installed targets appear as VersionInfo(installed="(not installed)")
+  plus a note; CLI exits 1 for them (10 wins if other targets have upgrades).
 
 ## Problem
 

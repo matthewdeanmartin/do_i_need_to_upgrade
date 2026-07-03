@@ -1,8 +1,30 @@
 # Phase 3 — First-class integration for host-app authors (PRIORITY)
 
-Status: SPEC ONLY — not started.
+Status: IMPLEMENTED (2026-07-03). Deviations from spec noted here.
 Prerequisite: Phase 2 recommended first (Settings below is shared), but 3
 can start with only Phase 1 done.
+
+Implementation notes:
+- `settings.py`: Settings frozen dataclass + from_table/from_toml/
+  from_pyproject + resolve() (user config then env; env wins). `audit` knob
+  from the spec was NOT included (audit stays an explicit call).
+- Settings added as an optional `settings=` parameter on every api function
+  (wins over host/positional args); Host-based calls unchanged for
+  back-compat. Position literal moved to settings.py; api re-imports it.
+- TTL/cooloff/index_url plumbed through _refresh_pypi/_build_version_info;
+  `pypi.fetch_package_json(url_template=...)` supports https private
+  indexes (pypi.org default still host-pinned via validate_pypi_url).
+- `integrate.py`: add_upgrade_command (--check/--dry-run),
+  add_check_command (default name "check-updates", --no-network),
+  run_if_upgrade_command, install_background_check (defaults
+  notify="exit-message" when no settings given). Namespace attrs are
+  _diu_-prefixed.
+- User config path: XDG_CONFIG_HOME/~/.config on POSIX, %APPDATA% on
+  Windows. Keys: disabled, no_network, disabled_for = [names].
+- 3.10: TOML files silently ignored (tomllib import guarded; mypy override
+  in pyproject for the 3.10 target).
+- Package-data TOML lookup is via explicit Settings.from_toml(path) — no
+  importlib.resources magic.
 
 ## Problem
 

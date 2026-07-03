@@ -42,17 +42,93 @@ refresh runs on a daemon thread, so the process must stay alive a few seconds
 for the result to land in the cache. Short-lived CLI apps should use
 `position="end"` (refresh after doing their real work) or `"both"`.
 
+## Integrating into your app
+
+Add a `my-app upgrade` subcommand to an existing argparse CLI in three lines:
+
+```python
+import sys
+import do_i_need_to_upgrade as diu
+
+subparsers = parser.add_subparsers(dest="command")
+diu.add_upgrade_command(subparsers, dist_name="my-app")   # adds `my-app upgrade`
+# ... your own subcommands ...
+args = parser.parse_args()
+if (rc := diu.run_if_upgrade_command(args)) is not None:
+    sys.exit(rc)
+```
+
+`diu.add_check_command(...)` adds a `check-updates` subcommand the same way.
+For long-running apps, the whole feature is one line at startup:
+
+```python
+diu.install_background_check("my-app")  # cached check + exit notification
+```
+
+Behavior is configured with a `Settings` object, or shipped as defaults in
+your `pyproject.toml`:
+
+```toml
+[tool.do_i_need_to_upgrade]
+position = "start"          # start | end | both | off
+notify = "exit-message"     # exit-message | return-only
+cooloff_days = 7
+check_ttl_hours = 24
+check_dependencies = false
+index_url = "https://pypi.example.com/pypi/{name}/json"  # private index (https only)
+```
+
+Load with `Settings.from_pyproject("my-app")` (dev) or
+`Settings.from_toml(path, "my-app")` (e.g. package data shipped in your wheel),
+and pass `settings=` to any API function or the integrate helpers.
+
+### No dependency? Vendor it
+
+Prefer not to add a dependency? Two supported paths
+(see [docs/usage/vendoring.md](docs/usage/vendoring.md)):
+
+- **Vendor the full package** — internal imports are relative, so copying
+  `do_i_need_to_upgrade/` into `yourapp/_vendor/` just works (needs
+  `packaging`, which you almost certainly already have).
+- **`diu_lite.py`** — a generated, stdlib-only, single-file build
+  (`make build-lite`) exposing exactly one function:
+  `check_for_updates("your-dist") -> str | None`. Zero dependencies, MIT,
+  ~350 lines, honors the same kill switch.
+
+### End-user kill switch
+
+Apps embedding this library phone home to PyPI, so end users always get the
+last word, regardless of app settings:
+
+- `DO_I_NEED_TO_UPGRADE=off` — disable checks entirely
+- `DO_I_NEED_TO_UPGRADE=no-network` — cache only, no fetches
+- `~/.config/do_i_need_to_upgrade.toml` (or `%APPDATA%\do_i_need_to_upgrade.toml`):
+  `disabled = true`, `no_network = true`, or `disabled_for = ["some-app"]`
+
+Precedence: environment variable > user config file > app settings > defaults.
+(On Python 3.10 the TOML config files are ignored — `tomllib` is stdlib from
+3.11; programmatic `Settings` work everywhere.)
+
 ## CLI
 
+`diu` is a short alias for `do_i_need_to_upgrade` — same command.
+
 ```bash
-do_i_need_to_upgrade --help
-do_i_need_to_upgrade check          # synchronous PyPI refresh
-do_i_need_to_upgrade status         # show cache without network
-do_i_need_to_upgrade audit          # vulnerability scan
-do_i_need_to_upgrade upgrade        # self-upgrade
-do_i_need_to_upgrade snooze do_i_need_to_upgrade==0.1.0 --days 30
-do_i_need_to_upgrade clear-cache
-do_i_need_to_upgrade integrity-check
+diu --help
+diu check                      # self-check: this dist + direct deps
+diu check ruff black yt-dlp    # check other apps, wherever installed
+                               # (current env, uv tool, pipx, or PATH)
+diu check -r requirements.txt  # check everything in a requirements file
+diu watch add yt-dlp           # persist names to a watch list
+diu check --watched            # check the whole watch list
+diu check --watched --quiet    # exit code only — cron/prompt friendly
+diu upgrade                    # self-upgrade via detected install method
+diu upgrade ruff               # upgrade another app via ITS install method
+diu status                     # show cache without network
+diu audit                      # vulnerability scan
+diu snooze ruff==0.4.4 --days 30
+diu clear-cache
+diu integrity-check
 ```
 
 Exit codes (script-friendly):

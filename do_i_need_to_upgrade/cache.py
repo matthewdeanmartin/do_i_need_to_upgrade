@@ -21,6 +21,7 @@ DEFAULT_TTL = timedelta(hours=24)
 COOLOFF = timedelta(days=14)
 
 
+# lite: begin time-helpers
 def utcnow() -> datetime:
     """Return the current UTC datetime.
 
@@ -62,6 +63,9 @@ def format_iso(dt: datetime) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# lite: end time-helpers
 
 
 @dataclass
@@ -227,6 +231,49 @@ class Cache:
             until = parse_iso(snoozes.get(key))
             if not until or until <= now:
                 del snoozes[key]
+
+    def watch_list(self) -> list[str]:
+        """Return the persisted watch list of package names.
+
+        Returns:
+            Sorted list of watched package names (empty if none).
+        """
+        watch = self.data.get("watch")
+        if not isinstance(watch, list):
+            return []
+        return [str(name) for name in watch]
+
+    def watch_add(self, name: str) -> bool:
+        """Add a package name to the watch list.
+
+        Args:
+            name: Package name to watch.
+
+        Returns:
+            True if added, False if it was already present.
+        """
+        names = self.watch_list()
+        if name in names:
+            return False
+        names.append(name)
+        self.data["watch"] = sorted(names)
+        return True
+
+    def watch_remove(self, name: str) -> bool:
+        """Remove a package name from the watch list.
+
+        Args:
+            name: Package name to stop watching.
+
+        Returns:
+            True if removed, False if it was not present.
+        """
+        names = self.watch_list()
+        if name not in names:
+            return False
+        names.remove(name)
+        self.data["watch"] = names
+        return True
 
     def set_audit(self, tool: str, summary: dict[str, Any]) -> None:
         """Record the last audit result.

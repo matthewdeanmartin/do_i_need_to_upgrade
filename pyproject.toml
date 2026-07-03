@@ -30,6 +30,7 @@ issues = "https://github.com/matthewdeanmartin/do_i_need_to_upgrade/issues/"
 
 [project.scripts]
 do_i_need_to_upgrade = "do_i_need_to_upgrade.cli:main"
+diu = "do_i_need_to_upgrade.cli:main"
 
 [build-system]
 requires = ["hatchling>=1.27.0"]
@@ -147,6 +148,11 @@ packages = ["do_i_need_to_upgrade", "tests"]
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_untyped_calls = false
+
+# tomllib is stdlib from 3.11; settings.py guards the import for 3.10.
+[[tool.mypy.overrides]]
+module = "tomllib"
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 120

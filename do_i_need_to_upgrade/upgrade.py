@@ -9,7 +9,7 @@ from __future__ import annotations
 import subprocess  # nosec B404
 from dataclasses import dataclass
 
-from do_i_need_to_upgrade.install_method import InstallMethod, detect, upgrade_argv
+from .install_method import InstallMethod, detect, upgrade_argv
 
 UPGRADE_TIMEOUT = 300
 
@@ -35,17 +35,20 @@ class UpgradeResult:
         return self.attempted and self.returncode == 0
 
 
-def perform(dist_name: str, dry_run: bool = False) -> UpgradeResult:
-    """Detect install method and perform (or simulate) a self-upgrade.
+def perform(dist_name: str, dry_run: bool = False, method: InstallMethod | None = None) -> UpgradeResult:
+    """Detect install method and perform (or simulate) an upgrade.
 
     Args:
         dist_name: The distribution name to upgrade.
         dry_run: If True, detect and return the command without running it.
+        method: Known install method (e.g. from a resolver); detected from
+            the current environment when None.
 
     Returns:
         An UpgradeResult describing what happened.
     """
-    method = detect(dist_name)
+    if method is None:
+        method = detect(dist_name)
     argv = upgrade_argv(method, dist_name)
     if argv is None or method == InstallMethod.EDITABLE:
         return UpgradeResult(method=method, argv=argv, returncode=None, stdout="", stderr="", attempted=False)

@@ -105,3 +105,34 @@ def test_format_iso_roundtrip() -> None:
     parsed = parse_iso(formatted)
     assert parsed is not None
     assert abs((now - parsed).total_seconds()) < 1
+
+
+def test_watch_add_and_list() -> None:
+    """watch_add persists names, sorted and deduplicated."""
+    with tempfile.TemporaryDirectory() as d:
+        cache = Cache.load(Path(d))
+        assert cache.watch_list() == []
+        assert cache.watch_add("zeta")
+        assert cache.watch_add("alpha")
+        assert not cache.watch_add("alpha")
+        assert cache.watch_list() == ["alpha", "zeta"]
+
+
+def test_watch_remove() -> None:
+    """watch_remove drops present names and reports absence."""
+    with tempfile.TemporaryDirectory() as d:
+        cache = Cache.load(Path(d))
+        cache.watch_add("pkg")
+        assert cache.watch_remove("pkg")
+        assert not cache.watch_remove("pkg")
+        assert cache.watch_list() == []
+
+
+def test_watch_survives_save_load() -> None:
+    """Watch list round-trips through save/load."""
+    with tempfile.TemporaryDirectory() as d:
+        cache = Cache.load(Path(d))
+        cache.watch_add("pkg")
+        cache.save()
+        reloaded = Cache.load(Path(d))
+        assert reloaded.watch_list() == ["pkg"]

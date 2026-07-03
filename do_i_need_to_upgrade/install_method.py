@@ -67,7 +67,7 @@ def dist_location(dist: metadata.Distribution) -> Path | None:
     return Path(origin).resolve() if origin else None
 
 
-def detect(dist_name: str) -> InstallMethod:
+def detect(dist_name: str) -> InstallMethod:  # pylint: disable=too-many-return-statements
     """Detect the install method for a distribution.
 
     Args:
