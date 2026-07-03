@@ -4,6 +4,7 @@ Status: IMPLEMENTED (2026-07-03). Deviations from spec noted inline below.
 Prerequisite: Phase 1 (correctness fixes 1–17) is DONE (2026-07-03).
 
 Implementation notes:
+
 - `resolvers.py` holds Target, resolve/resolve_all, the uv/pipx listing
   caches (lru_cache, once per process), and parse_requirements_file.
 - `api.check_targets(targets, host=...)` + `api.upgrade_target(target)`;
@@ -44,10 +45,10 @@ Design decisions:
 
 1. **Short alias**: add a second console script `diu` (keep the long name too).
    `[project.scripts] diu = "do_i_need_to_upgrade.cli:main"`.
-2. **Positional targets**: `check` and `upgrade` take zero or more positional
+1. **Positional targets**: `check` and `upgrade` take zero or more positional
    dist names. Zero positionals = current behavior (`--dist` default). Keep
    `--dist` for back-compat but document positionals as the way.
-3. **Watch list**: stored in the cache JSON under a new `"watch"` key
+1. **Watch list**: stored in the cache JSON under a new `"watch"` key
    (list of names). Bump nothing — additive to schema 1; absent key = empty.
 
 ## Resolver chain (finding "other" apps)
@@ -58,10 +59,10 @@ Design decisions:
 
 1. Current-env metadata (`installed.host_version`) → method via
    `install_method.detect`.
-2. `uv tool list` (parse text output; `uv tool list --format json` if/when
+1. `uv tool list` (parse text output; `uv tool list --format json` if/when
    available) → method `UV_TOOL`.
-3. `pipx list --json` → method `PIPX`.
-4. Fallback: `shutil.which(name)` + `<exe> --version` (best-effort parse;
+1. `pipx list --json` → method `PIPX`.
+1. Fallback: `shutil.which(name)` + `<exe> --version` (best-effort parse;
    method `UNKNOWN`, upgrade unsupported, version may be None).
 
 Not-installed is still useful: `diu check some-tool` with no resolver hit

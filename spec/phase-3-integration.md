@@ -5,13 +5,14 @@ Prerequisite: Phase 2 recommended first (Settings below is shared), but 3
 can start with only Phase 1 done.
 
 Implementation notes:
+
 - `settings.py`: Settings frozen dataclass + from_table/from_toml/
   from_pyproject + resolve() (user config then env; env wins). `audit` knob
   from the spec was NOT included (audit stays an explicit call).
 - Settings added as an optional `settings=` parameter on every api function
   (wins over host/positional args); Host-based calls unchanged for
   back-compat. Position literal moved to settings.py; api re-imports it.
-- TTL/cooloff/index_url plumbed through _refresh_pypi/_build_version_info;
+- TTL/cooloff/index_url plumbed through \_refresh_pypi/\_build_version_info;
   `pypi.fetch_package_json(url_template=...)` supports https private
   indexes (pypi.org default still host-pinned via validate_pypi_url).
 - `integrate.py`: add_upgrade_command (--check/--dry-run),
@@ -125,6 +126,7 @@ notify = "exit-message"
 ```
 
 Loader `Settings.from_pyproject(path=None, dist_name=...)`:
+
 - Dev scenario: walk up from cwd for `pyproject.toml`.
 - Deployed scenario: pyproject.toml is NOT installed with wheels — support a
   package data file (`my_app/do_i_need_to_upgrade.toml`) looked up via

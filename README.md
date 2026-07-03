@@ -138,12 +138,12 @@ diu integrity-check
 
 Exit codes (script-friendly):
 
-| Code | Meaning                                        |
+| Code | Meaning |
 |------|------------------------------------------------|
-| 0    | Up to date / success                           |
-| 1    | Error, or integrity problems found             |
-| 10   | Upgrades available (`check`)                   |
-| 11   | Vulnerabilities with available fixes (`audit`) |
+| 0 | Up to date / success |
+| 1 | Error, or integrity problems found |
+| 10 | Upgrades available (`check`) |
+| 11 | Vulnerabilities with available fixes (`audit`) |
 
 ```bash
 do_i_need_to_upgrade check --no-network || echo "time to upgrade"
@@ -156,7 +156,7 @@ upgrading. Those tools are aimed at developers, build masters, etc. do_i_need_to
 in an application where a non-technical user can get a signal that the app is out of date and possibly do something
 about it.
 
-### Prior art for Application and Artifact Update Checking 
+### Prior art for Application and Artifact Update Checking
 
 - [autoupgrade](https://pypi.org/project/autoupgrade/) is close historical prior art for an application importing a
   library that checks PyPI and performs an unattended upgrade, for example `AutoUpgrade("pip").upgrade_if_needed()`. It
@@ -205,4 +205,3 @@ about it.
 - [poetry-plugin-upgrade](https://pypi.org/project/poetry-plugin-upgrade/) upgrades dependency constraints in a
   Poetry-managed project. It is development-time dependency maintenance tooling, not an application runtime self-update
   helper.
-

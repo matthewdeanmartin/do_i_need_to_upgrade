@@ -3,6 +3,7 @@
 Status: IMPLEMENTED (2026-07-03). Deviations noted here.
 
 Implementation notes:
+
 - All package-internal imports converted to relative (`from . import x`) —
   the package is copy-paste vendorable. Docs: docs/usage/vendoring.md.
 - `scripts/build_lite.py` generates `dist/diu_lite.py` (~350 lines) from
