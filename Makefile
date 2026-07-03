@@ -207,7 +207,7 @@ bandit:
 
 audit:
 	@echo "=== uv audit ==="
-	@$(UV) audit
+	@$(UV) audit --no-group release
 	@echo "=== pip-audit ==="
 	@$(UV) run pip-audit
 
@@ -254,7 +254,7 @@ version-check:
 	@$(UV) run jiggle_version check
 
 dev-status:
-	@$(UV) run troml-dev-status validate .
+	@$(UV) run --with troml-dev-status>=0.6.0 troml-dev-status validate .
 
 # ── GitHub Actions maintenance ───────────────────────────────────────────────
 

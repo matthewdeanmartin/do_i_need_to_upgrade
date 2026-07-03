@@ -84,27 +84,22 @@ def satisfies(op: str, installed: str, wanted: str) -> bool:
     Returns:
         True if the constraint is satisfied.
     """
-    if op in {"==", "==="}:
-        return installed == wanted
-    if op == "!=":
-        return installed != wanted
+    if op in {"==", "===", "!="}:
+        return installed == wanted if op in {"==", "==="} else installed != wanted
     lhs = version_tuple(installed)
     rhs = version_tuple(wanted)
-    if op == ">=":
-        return lhs >= rhs
-    if op == ">":
-        return lhs > rhs
-    if op == "<=":
-        return lhs <= rhs
-    if op == "<":
-        return lhs < rhs
     if op == "~=":
         if len(rhs) < 2:
             return lhs >= rhs
         upper = rhs[:-1]
         upper_plus = (*upper[:-1], upper[-1] + 1)
         return lhs >= rhs and lhs[: len(upper_plus)] < upper_plus
-    return True
+    return {
+        ">=": lhs >= rhs,
+        ">": lhs > rhs,
+        "<=": lhs <= rhs,
+        "<": lhs < rhs,
+    }.get(op, True)
 
 
 def check_specifier(installed: str, specifier: str) -> bool:
@@ -181,25 +176,15 @@ def marker_applies(marker: str) -> bool:
         return True  # unknown variable → assume applicable
 
     # Compare using version tuples for version-like variables, else string equality.
+    applicable = True
     version_vars = {"python_version", "python_full_version"}
     if var in version_vars:
-        lhs = version_tuple(env_val)
-        rhs = version_tuple(val)
-        return (
-            satisfies(op, env_val, val)
-            if op in {"==", "!="}
-            else (
-                lhs >= rhs
-                if op == ">="
-                else lhs > rhs if op == ">" else lhs <= rhs if op == "<=" else lhs < rhs if op == "<" else True
-            )
-        )
-    # String comparison for os_name, sys_platform, platform_system, etc.
-    if op == "==":
-        return env_val == val
-    if op == "!=":
-        return env_val != val
-    return True  # relational string comparisons are unusual; assume applicable
+        applicable = satisfies(op, env_val, val)
+    elif op == "==":
+        applicable = env_val == val
+    elif op == "!=":
+        applicable = env_val != val
+    return applicable  # relational string comparisons are unusual; assume applicable
 
 
 def run() -> list[str]:

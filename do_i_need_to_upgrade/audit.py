@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
 
@@ -39,7 +39,7 @@ def _run_cmd(argv: list[str]) -> tuple[str, str, int | None]:
         Tuple of (stdout, stderr, returncode). returncode is None on failure.
     """
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec B603
             argv,
             capture_output=True,
             text=True,

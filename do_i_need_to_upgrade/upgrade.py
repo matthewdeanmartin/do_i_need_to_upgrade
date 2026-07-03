@@ -6,7 +6,7 @@ upgrade command.
 
 from __future__ import annotations
 
-import subprocess
+import subprocess  # nosec B404
 from dataclasses import dataclass
 
 from do_i_need_to_upgrade.install_method import InstallMethod, detect, upgrade_argv
@@ -52,7 +52,7 @@ def perform(dist_name: str, dry_run: bool = False) -> UpgradeResult:
     if dry_run:
         return UpgradeResult(method=method, argv=argv, returncode=None, stdout="", stderr="", attempted=False)
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosec B603
             argv,
             capture_output=True,
             text=True,

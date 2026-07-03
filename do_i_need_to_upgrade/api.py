@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Literal
 
-from do_i_need_to_upgrade import background, installed
+from do_i_need_to_upgrade import background, installed, integrity_check
 from do_i_need_to_upgrade import pypi as pypi_module
 from do_i_need_to_upgrade import upgrade as upgrade_module
 from do_i_need_to_upgrade.audit import run_available_audit
@@ -25,7 +25,6 @@ def _build_version_info(
     name: str,
     installed_version: str,
     cache: Cache,
-    include_prereleases: bool = False,
 ) -> VersionInfo:
     """Construct a VersionInfo from cache data for a single package.
 
@@ -33,8 +32,6 @@ def _build_version_info(
         name: Package name.
         installed_version: Currently installed version string.
         cache: The loaded Cache instance.
-        include_prereleases: Whether to treat pre-releases as upgrade candidates.
-
     Returns:
         A populated VersionInfo dataclass.
     """
@@ -172,8 +169,8 @@ def check_for_updates(
     else:
         errors = []
 
-    host_info = _build_version_info(active_host.dist_name, host_installed, cache, include_prereleases)
-    dep_infos = tuple(_build_version_info(name, version, cache, include_prereleases) for name, version in deps)
+    host_info = _build_version_info(active_host.dist_name, host_installed, cache)
+    dep_infos = tuple(_build_version_info(name, version, cache) for name, version in deps)
 
     notes: list[str] = []
     all_infos = [host_info, *dep_infos]
@@ -266,8 +263,7 @@ def self_check(host: Host | None = None) -> list[str]:
     Returns:
         List of human-readable integrity problem strings. Empty = clean.
     """
-    from do_i_need_to_upgrade import integrity_check
-
+    del host
     return integrity_check.run()
 
 

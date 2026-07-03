@@ -17,7 +17,7 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import NamedTuple
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 from packaging.version import parse as parse_version
 
 PYPI_HOST = "pypi.org"
@@ -165,7 +165,7 @@ def parse_version_detail(
             continue
         try:
             v = parse_version(v_str)
-        except Exception:
+        except InvalidVersion:
             continue
         if v.is_devrelease:
             continue  # skip dev releases

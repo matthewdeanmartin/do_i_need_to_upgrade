@@ -979,9 +979,11 @@ dev = [
     { name = "ruff" },
     { name = "tox" },
     { name = "tox-uv" },
-    { name = "troml-dev-status" },
     { name = "vulture" },
     { name = "yamlfix" },
+]
+release = [
+    { name = "troml-dev-status" },
 ]
 
 [package.metadata]
@@ -1030,10 +1032,10 @@ dev = [
     { name = "ruff", specifier = ">=0.12.0" },
     { name = "tox", specifier = ">=4.0" },
     { name = "tox-uv", specifier = ">=1.0" },
-    { name = "troml-dev-status", specifier = ">=0.6.0" },
     { name = "vulture", specifier = ">=2.11" },
     { name = "yamlfix", specifier = ">=1.19.0" },
 ]
+release = [{ name = "troml-dev-status", specifier = ">=0.6.0" }]
 
 [[package]]
 name = "docstring-parser-fork"
@@ -1062,7 +1064,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1213,8 +1215,8 @@ name = "gha-update"
 version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "python_full_version >= '3.12'" },
-    { name = "httpx", marker = "python_full_version >= '3.12'" },
+    { name = "click" },
+    { name = "httpx" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/46/e8/eb710e08998a22b314cc068f14805cfdd12e3934a5496c8916c5a164c65a/gha_update-0.2.0.tar.gz", hash = "sha256:328ee0db09346ad13ee90646698cea2ec1f9035964ddd7c2a728a91034c3f4b0", size = 4756, upload-time = "2025-07-14T03:13:33.254Z" }
 wheels = [

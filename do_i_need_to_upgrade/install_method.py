@@ -6,6 +6,7 @@ Used by upgrade.py to select the appropriate upgrade command.
 from __future__ import annotations
 
 import json
+import site
 import sys
 from enum import Enum
 from importlib import metadata
@@ -35,7 +36,7 @@ def is_editable(dist: metadata.Distribution) -> bool:
     """
     try:
         raw = dist.read_text("direct_url.json")
-    except Exception:
+    except (FileNotFoundError, OSError):
         return False
     if not raw:
         return False
@@ -57,11 +58,11 @@ def dist_location(dist: metadata.Distribution) -> Path | None:
         Resolved Path to the distribution directory, or None.
     """
     locate = getattr(dist, "locate_file", None)
-    try:
-        if locate is not None:
+    if locate is not None:
+        try:
             return Path(locate("")).resolve()
-    except Exception:
-        pass
+        except (FileNotFoundError, OSError, RuntimeError, TypeError, ValueError):
+            return None
     origin = getattr(dist, "_path", None)
     return Path(origin).resolve() if origin else None
 
@@ -86,25 +87,24 @@ def detect(dist_name: str) -> InstallMethod:
     location = dist_location(dist)
     location_str = str(location).replace("\\", "/").lower() if location else ""
 
+    detected = InstallMethod.SYSTEM_PIP
     if "/uv/tools/" in location_str:
-        return InstallMethod.UV_TOOL
-    if "/pipx/venvs/" in location_str:
-        return InstallMethod.PIPX
+        detected = InstallMethod.UV_TOOL
+    elif "/pipx/venvs/" in location_str:
+        detected = InstallMethod.PIPX
 
     in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix)
     if in_venv:
         return InstallMethod.VENV_PIP
 
     try:
-        import site
-
         user_site = (site.getusersitepackages() or "").replace("\\", "/").lower()
-    except Exception:
+    except (AttributeError, OSError):
         user_site = ""
     if user_site and user_site in location_str:
         return InstallMethod.USER_PIP
 
-    return InstallMethod.SYSTEM_PIP
+    return detected
 
 
 def upgrade_argv(method: InstallMethod, dist_name: str) -> list[str] | None:
@@ -117,17 +117,15 @@ def upgrade_argv(method: InstallMethod, dist_name: str) -> list[str] | None:
     Returns:
         The command argument list, or None if upgrading is not supported.
     """
-    if method == InstallMethod.UV_TOOL:
-        return ["uv", "tool", "upgrade", dist_name]
-    if method == InstallMethod.PIPX:
-        return ["pipx", "upgrade", dist_name]
-    if method == InstallMethod.VENV_PIP:
-        return [sys.executable, "-m", "pip", "install", "--upgrade", dist_name]
-    if method == InstallMethod.USER_PIP:
-        return [sys.executable, "-m", "pip", "install", "--user", "--upgrade", dist_name]
-    if method == InstallMethod.SYSTEM_PIP:
-        return [sys.executable, "-m", "pip", "install", "--upgrade", dist_name]
-    return None
+    pip_install = [sys.executable, "-m", "pip", "install"]
+    commands: dict[InstallMethod, list[str]] = {
+        InstallMethod.UV_TOOL: ["uv", "tool", "upgrade", dist_name],
+        InstallMethod.PIPX: ["pipx", "upgrade", dist_name],
+        InstallMethod.VENV_PIP: [*pip_install, "--upgrade", dist_name],
+        InstallMethod.USER_PIP: [*pip_install, "--user", "--upgrade", dist_name],
+        InstallMethod.SYSTEM_PIP: [*pip_install, "--upgrade", dist_name],
+    }
+    return commands.get(method)
 
 
 __all__ = ["InstallMethod", "detect", "dist_location", "is_editable", "upgrade_argv"]

@@ -15,15 +15,14 @@ import sys
 import threading
 from collections.abc import Callable
 
-# The message to show on exit (if any)
-_exit_message: str | None = None
-_exit_handler_registered = False
+_EXIT_STATE: dict[str, str | bool | None] = {"message": None, "registered": False}
 
 
 def _exit_handler() -> None:
     """Print the pending update message on program exit, if any."""
-    if _exit_message:
-        print(f"\n{_exit_message}", file=sys.stderr)
+    message = _EXIT_STATE["message"]
+    if isinstance(message, str) and message:
+        print(f"\n{message}", file=sys.stderr)
 
 
 def register_exit_message(message: str) -> None:
@@ -32,11 +31,10 @@ def register_exit_message(message: str) -> None:
     Args:
         message: The message string to display on exit.
     """
-    global _exit_message, _exit_handler_registered
-    _exit_message = message
-    if not _exit_handler_registered:
+    _EXIT_STATE["message"] = message
+    if not _EXIT_STATE["registered"]:
         atexit.register(_exit_handler)
-        _exit_handler_registered = True
+        _EXIT_STATE["registered"] = True
 
 
 def spawn(target: Callable[[], None], name: str = "do-i-need-to-upgrade-refresh") -> threading.Thread:

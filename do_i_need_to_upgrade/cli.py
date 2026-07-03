@@ -289,27 +289,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     host = _make_host(getattr(args, "dist", None), getattr(args, "cache_dir", None))
     command = args.command or "check"
 
+    result: int
     if command == "status":
-        return _cmd_status(host, as_json=args.json)
-    if command == "check":
-        return _cmd_check(
+        result = _cmd_status(host, as_json=args.json)
+    elif command == "check":
+        result = _cmd_check(
             host,
             as_json=args.json,
             no_network=args.no_network,
             include_prereleases=args.include_prereleases,
         )
-    if command == "audit":
-        return _cmd_audit(host, as_json=args.json, force=getattr(args, "force", False))
-    if command == "upgrade":
-        return _cmd_upgrade(host, dry_run=getattr(args, "dry_run", False), as_json=args.json)
-    if command == "integrity-check":
-        return _cmd_integrity_check(as_json=args.json)
-    if command == "clear-cache":
-        return _cmd_clear_cache(host)
-    if command == "snooze":
-        return _cmd_snooze(host, target=args.target, days=args.days)
-    parser.print_help()
-    return 2
+    elif command == "audit":
+        result = _cmd_audit(host, as_json=args.json, force=getattr(args, "force", False))
+    elif command == "upgrade":
+        result = _cmd_upgrade(host, dry_run=getattr(args, "dry_run", False), as_json=args.json)
+    elif command == "integrity-check":
+        result = _cmd_integrity_check(as_json=args.json)
+    elif command == "clear-cache":
+        result = _cmd_clear_cache(host)
+    elif command == "snooze":
+        result = _cmd_snooze(host, target=args.target, days=args.days)
+    else:
+        parser.print_help()
+        result = 2
+    return result
 
 
 if __name__ == "__main__":

@@ -19,17 +19,17 @@ class Host(Protocol):
     @property
     def dist_name(self) -> str:
         """Name of the distribution this host represents (e.g. 'my-app')."""
-        ...
+        raise NotImplementedError
 
     @property
     def cache_dir(self) -> Path:
         """Directory where do_i_need_to_upgrade may write its sidecar cache."""
-        ...
+        raise NotImplementedError
 
     @property
     def logger(self) -> logging.Logger:
         """Logger used by do_i_need_to_upgrade."""
-        ...
+        raise NotImplementedError
 
 
 class GenericHost:
