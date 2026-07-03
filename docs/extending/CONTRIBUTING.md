@@ -37,6 +37,6 @@ uv run make smoke       # CLI smoke checks
 ## Pull requests
 
 1. Fork the repository and create a feature branch.
-2. Run `uv run make check` — all checks must pass.
-3. Open a pull request against `main`.
-4. Update `CHANGELOG.md` under `[Unreleased]`.
+1. Run `uv run make check` — all checks must pass.
+1. Open a pull request against `main`.
+1. Update `CHANGELOG.md` under `[Unreleased]`.

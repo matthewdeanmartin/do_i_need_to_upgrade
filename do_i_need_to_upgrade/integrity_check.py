@@ -49,7 +49,7 @@ def split_requirement(requirement: str) -> tuple[str, str, str | None] | None:
     if not match:
         return None
     name = match.group(1)
-    rest = head[match.end():]
+    rest = head[match.end() :]
     rest = rest.split("[", 1)[0] if "[" in rest else rest
     rest = rest.replace("(", "").replace(")", "").strip()
     return name, rest, marker

@@ -72,8 +72,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cache-dir", default=None, dest="cache_dir", help="Override cache directory")
     parser.add_argument("--json", action="store_true", help="Emit JSON output")
     parser.add_argument("--no-network", action="store_true", dest="no_network", help="Use cache only, no PyPI fetches")
-    parser.add_argument("--include-prereleases", action="store_true", dest="include_prereleases",
-                        help="Include pre-release versions")
+    parser.add_argument(
+        "--include-prereleases", action="store_true", dest="include_prereleases", help="Include pre-release versions"
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=False)
 

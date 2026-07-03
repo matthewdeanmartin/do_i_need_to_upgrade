@@ -5,7 +5,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from do_i_need_to_upgrade.cache import Cache, parse_iso, format_iso, utcnow
+from do_i_need_to_upgrade.cache import Cache, format_iso, parse_iso, utcnow
 
 
 def test_empty_cache_load() -> None:

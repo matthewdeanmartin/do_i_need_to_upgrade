@@ -64,7 +64,7 @@ def _extract_json(text: str) -> object | None:
     if not starts:
         return None
     try:
-        return json.loads(text[min(starts):])
+        return json.loads(text[min(starts) :])
     except json.JSONDecodeError:
         return None
 

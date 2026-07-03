@@ -17,7 +17,8 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import NamedTuple
 
-from packaging.version import Version, parse as parse_version
+from packaging.version import Version
+from packaging.version import parse as parse_version
 
 PYPI_HOST = "pypi.org"
 PYPI_URL = "https://pypi.org/pypi/{name}/json"

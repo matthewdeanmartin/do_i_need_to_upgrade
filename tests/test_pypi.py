@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 
 from do_i_need_to_upgrade.pypi import (

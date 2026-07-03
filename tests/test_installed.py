@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from do_i_need_to_upgrade.installed import parse_requirement_name, host_version
+from do_i_need_to_upgrade.installed import host_version, parse_requirement_name
 
 
 def test_parse_simple() -> None:
