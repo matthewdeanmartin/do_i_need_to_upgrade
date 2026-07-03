@@ -2,8 +2,8 @@
 
 Do your users need some way to know that your python application has published a new version?
 
-A drop-in Python library that gives any CLI application zero-cost background
-update checking, vulnerability auditing, and self-upgrade capabilities.
+A drop-in Python library that gives any application zero-cost background update checking, vulnerability auditing, and
+self-upgrade capabilities.
 
 This is optimized for applications with end users, not so much for libraries. For that people should use their favorite
 package manager's features.
@@ -87,15 +87,16 @@ Load with `Settings.from_pyproject("my-app")` (dev) or
 `Settings.from_toml(path, "my-app")` (e.g. package data shipped in your wheel),
 and pass `settings=` to any API function or the integrate helpers.
 
-### Want no dependencies at all? Vendor it
+### Want to minimize dependencies?
 
-Prefer not to add a dependency? Two supported paths
-(see [docs/usage/vendoring.md](https://github.com/matthewdeanmartin/do_i_need_to_upgrade/blob/main/docs/usage/vendoring.md)):
+For lean host apps, there are two recommended integration paths
+(
+see [docs/usage/vendoring.md](https://github.com/matthewdeanmartin/do_i_need_to_upgrade/blob/main/docs/usage/vendoring.md)):
 
-- **Vendor the full package** — internal imports are relative, so copying
-  `do_i_need_to_upgrade/` into `yourapp/_vendor/` just works (needs
-  `packaging`, which you almost certainly already have).
-- **`diu_lite.py`** — a generated, stdlib-only, single-file build
+- **Optional extras in the host app** — keep `do_i_need_to_upgrade` out of the
+  base install and offer it behind something like `my-app[all]`. The app
+  should quietly skip update-check integration when the extra is not installed.
+- **`diu_lite.py` vendoring** — a generated, stdlib-only, single-file build
   (`make build-lite`) exposing exactly one function:
   `check_for_updates("your-dist") -> str | None`. Zero dependencies, MIT,
   ~350 lines, honors the same kill switch.
@@ -138,12 +139,12 @@ diu integrity-check
 
 Exit codes (script-friendly):
 
-| Code | Meaning |
+| Code | Meaning                                        |
 |------|------------------------------------------------|
-| 0 | Up to date / success |
-| 1 | Error, or integrity problems found |
-| 10 | Upgrades available (`check`) |
-| 11 | Vulnerabilities with available fixes (`audit`) |
+| 0    | Up to date / success                           |
+| 1    | Error, or integrity problems found             |
+| 10   | Upgrades available (`check`)                   |
+| 11   | Vulnerabilities with available fixes (`audit`) |
 
 ```bash
 do_i_need_to_upgrade check --no-network || echo "time to upgrade"

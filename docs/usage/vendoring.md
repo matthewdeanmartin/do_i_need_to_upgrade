@@ -1,26 +1,41 @@
-# Vendoring and the single-file lite build
+# Minimal-dependency integration
 
-You do not have to add `do_i_need_to_upgrade` as a dependency. Two supported
-alternatives, in increasing order of minimalism:
+If you want `do_i_need_to_upgrade` without making it part of your app's base
+runtime dependencies, these are the two recommended paths:
 
-## Option 1 — vendor the full package
+## Option 1 — host-app optional extras
 
-The package uses relative imports internally, so it is copy-paste vendorable:
+Keep the integration in your app, but make the dependency optional:
 
-1. Copy the `do_i_need_to_upgrade/` directory into your project, e.g.
-   `yourapp/_vendor/diu/` (any directory name works — imports are relative).
-1. Keep the `LICENSE` file (MIT) alongside the vendored copy.
-1. Import it from its new home:
-   ```python
-   from yourapp._vendor import diu
-   diu.install_background_check("your-app")
-   ```
-1. You still need `packaging` at runtime — you almost certainly already have
-   it (pip, setuptools, and most tools depend on it). If you want zero
-   dependencies, use option 2.
+```toml
+[project]
+dependencies = []
 
-To update, re-copy the directory from a newer release. Note the version you
-vendored in a comment or a `VENDORED.txt` so upgrades are traceable.
+[project.optional-dependencies]
+all = [
+  "do_i_need_to_upgrade>=0.0.1",
+]
+```
+
+Then structure your host app so it quietly skips update integration when the
+extra is not installed:
+
+```python
+try:
+    from do_i_need_to_upgrade import add_upgrade_command
+except ImportError:
+    add_upgrade_command = None
+
+
+if add_upgrade_command is not None:
+    add_upgrade_command(subparsers, dist_name="your-app")
+```
+
+This pattern is good when:
+
+- you want full `do_i_need_to_upgrade` behavior
+- you do not want the base install to pull extra dependencies
+- you are willing to make update checks a feature of `your-app[all]`
 
 ## Option 2 — the single-file lite build (`diu_lite.py`)
 
@@ -64,3 +79,17 @@ verbatim from the package sources via `# lite: begin/end` markers by
 `scripts/build_lite.py`; only the naive version compare, the tiny cache, and
 the public `check_for_updates` are lite-specific. `tests/test_lite.py`
 regenerates and exercises the file on every test run, so it cannot drift.
+
+## Which one should you choose?
+
+Choose **optional extras** when you want:
+
+- integrated `upgrade` and `check-updates` commands
+- installer-aware self-upgrade behavior
+- dependency checks, snoozes, cooloff, and settings support
+
+Choose **`diu_lite.py`** when you want:
+
+- the fewest possible dependencies
+- a single vendored file
+- only the simple "is there a newer release on PyPI?" startup check
