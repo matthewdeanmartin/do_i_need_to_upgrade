@@ -139,12 +139,12 @@ diu integrity-check
 
 Exit codes (script-friendly):
 
-| Code | Meaning                                        |
+| Code | Meaning |
 |------|------------------------------------------------|
-| 0    | Up to date / success                           |
-| 1    | Error, or integrity problems found             |
-| 10   | Upgrades available (`check`)                   |
-| 11   | Vulnerabilities with available fixes (`audit`) |
+| 0 | Up to date / success |
+| 1 | Error, or integrity problems found |
+| 10 | Upgrades available (`check`) |
+| 11 | Vulnerabilities with available fixes (`audit`) |
 
 ```bash
 do_i_need_to_upgrade check --no-network || echo "time to upgrade"

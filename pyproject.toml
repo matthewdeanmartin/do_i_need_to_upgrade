@@ -55,6 +55,9 @@ include = ["/README.md", "LICENSE", "/do_i_need_to_upgrade", "/tests"]
 
 [dependency-groups]
 dev = [
+    "urllib3>=2.7.0; python_version >= '3.10'",
+    # "urllib3>=2.7.0; python_version >= '3.11'",
+    # "urllib3; python_version <= '3.11'",
     "bandit>=1.9.4; python_version >= '3.11'",
     "black>=26.0.0; python_version >= '3.11'",
     "isort>=6.0.0; python_version >= '3.11'",

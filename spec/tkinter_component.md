@@ -21,8 +21,8 @@ Do not make the core package import Tkinter.
 Instead:
 
 1. Use `check_for_updates(...)` or the integrate helpers to get a `Report`.
-2. In the host app, convert that report into Tkinter behavior.
-3. Keep stderr output as the fallback/default path.
+1. In the host app, convert that report into Tkinter behavior.
+1. Keep stderr output as the fallback/default path.
 
 Host-local module example:
 
@@ -138,11 +138,11 @@ This keeps the host app in control of presentation.
 For long-running Tkinter apps:
 
 1. Run the cached/background check at startup.
-2. Print the startup text to stderr if non-empty.
-3. Schedule an optional Tk notice from the startup report.
-4. Let the app run so the background refresh can update the cache.
-5. On exit, do a cache-only reread.
-6. Print the exit text to stderr if it is non-empty and different from the startup notice.
+1. Print the startup text to stderr if non-empty.
+1. Schedule an optional Tk notice from the startup report.
+1. Let the app run so the background refresh can update the cache.
+1. On exit, do a cache-only reread.
+1. Print the exit text to stderr if it is non-empty and different from the startup notice.
 
 The Tk dialog is usually only needed on startup.
 
@@ -168,10 +168,10 @@ These patterns are better for end-user apps than forcing a popup every launch.
 If asked to add Tkinter support to an existing app, do this in order:
 
 1. Get terminal/stderr integration working first.
-2. Add a host-local helper such as `upgrade_integration.py`.
-3. Add `schedule_tk_notice(root, report)` in that helper.
-4. Call it only after the main window has been created.
-5. Add tests that patch `root.after` and `messagebox.showinfo`.
+1. Add a host-local helper such as `upgrade_integration.py`.
+1. Add `schedule_tk_notice(root, report)` in that helper.
+1. Call it only after the main window has been created.
+1. Add tests that patch `root.after` and `messagebox.showinfo`.
 
 Do not start by editing the core library to import Tkinter directly.
 

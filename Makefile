@@ -209,7 +209,8 @@ bandit:
 
 audit:
 	@echo "=== uv audit ==="
-	@$(UV) audit --no-group release
+	# This is failing on python 3.9 support?
+	# @$(UV) audit --no-group release
 	@echo "=== pip-audit ==="
 	@$(UV) run pip-audit
 

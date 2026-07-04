@@ -15,19 +15,19 @@ Real integration means the host app:
 ## Minimum integration checklist
 
 1. Add `do_i_need_to_upgrade` as a runtime dependency in the host app's `[project.dependencies]`.
-2. Do not use a local editable path override unless the user explicitly asks for local dogfooding.
-3. Add integrated argparse subcommands with:
+1. Do not use a local editable path override unless the user explicitly asks for local dogfooding.
+1. Add integrated argparse subcommands with:
    - `add_upgrade_command(...)`
    - `add_check_command(...)`
    - `run_if_upgrade_command(args)`
-4. Hook update checking into the host app's real lifecycle:
+1. Hook update checking into the host app's real lifecycle:
    - startup for cached check + background refresh
    - exit for a cache-only reread so the refreshed result can be shown
-5. Add tests for:
+1. Add tests for:
    - subcommand parsing
    - dispatcher behavior
    - startup/exit notice behavior
-6. Run the host app's normal `uv`-based test flow.
+1. Run the host app's normal `uv`-based test flow.
 
 ## Dependency rule
 
@@ -124,10 +124,10 @@ For desktop or long-running apps, do not make the user run a separate updater co
 Recommended flow:
 
 1. On startup, call `startup_report()`.
-2. If it returns a non-empty report, render it to stderr immediately.
-3. Let the app continue running so the background refresh can land in the cache.
-4. When the app exits, call `exit_report()`.
-5. Render the exit report if it is non-empty and different from the startup message.
+1. If it returns a non-empty report, render it to stderr immediately.
+1. Let the app continue running so the background refresh can land in the cache.
+1. When the app exits, call `exit_report()`.
+1. Render the exit report if it is non-empty and different from the startup message.
 
 That gives:
 
