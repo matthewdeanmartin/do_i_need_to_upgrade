@@ -1,6 +1,6 @@
 [project]
 name = "do_i_need_to_upgrade"
-version = "0.0.1"
+version = "0.1.0"
 description = "Drop-in application self-upgrade checker and vulnerability auditor"
 readme = "README.md"
 authors = [{ name = "Matthew Martin", email = "matthewdeanmartin@gmail.com" }]
