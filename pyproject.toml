@@ -175,6 +175,7 @@ select = [
 ]
 ignore = [
     "E501",
+    "UP045", # need 39 support
 ]
 
 [tool.ruff.lint.per-file-ignores]
