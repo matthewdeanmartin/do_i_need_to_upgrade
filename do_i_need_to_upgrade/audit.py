@@ -11,6 +11,7 @@ import shutil
 import subprocess  # nosec B404
 import sys
 from collections.abc import Callable
+from typing import Optional
 
 from .report import Vulnerability
 
@@ -142,10 +143,10 @@ def _parse_safety(stdout: str) -> list[Vulnerability] | None:
     return findings
 
 
-AuditRunner = Callable[[], tuple[list[Vulnerability], str | None]]
+AuditRunner = Callable[[], tuple[list[Vulnerability], Optional[str]]]
 
 
-def _runner_uv_audit() -> tuple[list[Vulnerability], str | None]:
+def _runner_uv_audit() -> tuple[list[Vulnerability], Optional[str]]:
     """Run uv pip audit and return (vulnerabilities, tool_name_or_None).
 
     Returns:
@@ -164,7 +165,7 @@ def _runner_uv_audit() -> tuple[list[Vulnerability], str | None]:
     return findings, "uv-audit"
 
 
-def _runner_pip_audit() -> tuple[list[Vulnerability], str | None]:
+def _runner_pip_audit() -> tuple[list[Vulnerability], Optional[str]]:
     """Run pip-audit and return (vulnerabilities, tool_name_or_None).
 
     Returns:
@@ -201,7 +202,7 @@ def _runner_safety() -> tuple[list[Vulnerability], str | None]:
     return findings, "safety"
 
 
-def run_available_audit() -> tuple[list[Vulnerability], str | None]:
+def run_available_audit() -> tuple[list[Vulnerability], Optional[str]]:
     """Run the first available audit tool and return (vulnerabilities, tool_name).
 
     Tries uv audit first, then pip-audit, then safety. A tool that is on PATH

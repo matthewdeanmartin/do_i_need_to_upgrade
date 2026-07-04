@@ -10,6 +10,7 @@ import ast
 import importlib.util
 import json
 import sys
+import sysconfig
 from datetime import timedelta, timezone
 from pathlib import Path
 from types import ModuleType
@@ -17,6 +18,20 @@ from types import ModuleType
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _stdlib_module_names() -> set[str]:
+    """Return top-level stdlib module names across supported Python versions."""
+    if hasattr(sys, "stdlib_module_names"):
+        return set(sys.stdlib_module_names)
+
+    stdlib = Path(sysconfig.get_paths()["stdlib"])
+    names = set(sys.builtin_module_names)
+    names.update(path.stem for path in stdlib.glob("*.py"))
+    names.update(path.stem for path in stdlib.glob("*.pyd"))
+    names.update(path.stem for path in stdlib.glob("*.so"))
+    names.update(path.name for path in stdlib.iterdir() if path.is_dir() and (path / "__init__.py").exists())
+    return names
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +62,7 @@ def test_lite_is_stdlib_only(lite: ModuleType) -> None:
             imported.update(alias.name.split(".")[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             imported.add(node.module.split(".")[0])
-    non_stdlib = imported - set(sys.stdlib_module_names) - {"__future__"}
+    non_stdlib = imported - _stdlib_module_names() - {"__future__"}
     assert not non_stdlib, f"lite build imports non-stdlib modules: {non_stdlib}"
 
 
