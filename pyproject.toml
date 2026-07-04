@@ -6,13 +6,14 @@ readme = "README.md"
 authors = [{ name = "Matthew Martin", email = "matthewdeanmartin@gmail.com" }]
 keywords = ["do_i_need_to_upgrade", "upgrade", "self-update", "pypi", "update-checker"]
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 1 - Planning",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -63,7 +64,7 @@ dev = [
     "mdformat>=1.0.0; python_version >= '3.11'",
     "metametameta>=0.1.5; python_version >= '3.11'",
     "mypy>=1.18.0",
-    "pylint[spelling]>=4.0.0",
+    "pylint[spelling]>=4.0.0; python_version >= '3.10'",
     "pytest>=8.4.0",
     "pytest-cov>=6.0.0",
     "pytest-xdist>=3.5.0",
@@ -79,7 +80,7 @@ dev = [
     "tox-uv>=1.0",
     "gha-update>=0.1.0; python_version >= '3.12'",
     "pyyaml>=6.0",
-    "yamlfix>=1.19.0",
+    "yamlfix>=1.19.0; python_version >= '3.10'",
     "interrogate>=1.5.0",
     "linkcheckmd>=1.4.0",
     "pyenchant>=3.2.2",
@@ -90,7 +91,7 @@ dev = [
     "vulture>=2.11; python_version >= '3.11'",
     "deadcode>=2.4.0; python_version >= '3.11'",
     "griffe>=1.0.0; python_version >= '3.11'",
-    "pydoclint>=0.8.0",
+    "pydoclint>=0.8.0; python_version >= '3.11'",
     "pydoctest==0.2.1",
     "refurb>=2.0.0; python_version >= '3.11'",
     "crosshair-tool>=0.0.80",
