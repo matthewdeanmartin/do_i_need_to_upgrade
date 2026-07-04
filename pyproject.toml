@@ -119,7 +119,7 @@ junit_family = "xunit1"
 
 [tool.black]
 line-length = 120
-target-version = ["py310"]
+target-version = ["py39"]
 include = '\.pyi?$'
 exclude = '''
 (
@@ -161,7 +161,7 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = [
