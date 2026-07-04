@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 __title__ = "do_i_need_to_upgrade"
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __description__ = "Drop-in application self-upgrade checker and vulnerability auditor"
 __readme__ = "README.md"
 __credits__ = [{"name": "Matthew Martin", "email": "matthewdeanmartin@gmail.com"}]
