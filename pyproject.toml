@@ -62,7 +62,7 @@ dev = [
     "black>=26.0.0; python_version >= '3.11'",
     "isort>=6.0.0; python_version >= '3.11'",
     "jiggle-version>=2.1.0; python_version >= '3.11'",
-    "keepachangelog-manager-fork[all]>=6.5.0; python_version < '3.15'",
+    "keepachangelog-manager-fork[all]>=6.6.0; python_version < '3.15'",
     "codespell>=2.4.1; python_version >= '3.11'",
     "mdformat>=1.0.0; python_version >= '3.11'",
     "metametameta>=0.1.5; python_version >= '3.11'",
