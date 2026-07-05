@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for python39
 
+### Changed
+- Host integration guidance now documents the Python 3.8 exception explicitly: skip `do_i_need_to_upgrade`
+  imports and calls when the dependency is omitted there, while keeping it mandatory on Python 3.9+.
+
 ## [0.0.1] - 2026-07-03
 ### Added
 - Update checking for any installed distribution against PyPI, with PEP 440 version comparison.

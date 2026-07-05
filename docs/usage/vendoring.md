@@ -37,6 +37,36 @@ This pattern is good when:
 - you do not want the base install to pull extra dependencies
 - you are willing to make update checks a feature of `your-app[all]`
 
+### Variant: mandatory on Python 3.9+, skipped on Python 3.8
+
+If your host app still ships a Python 3.8 build, but `do_i_need_to_upgrade`
+is mandatory everywhere else, use an environment marker:
+
+```toml
+[project]
+dependencies = [
+  "do_i_need_to_upgrade>=0.0.1; python_version >= '3.9'",
+]
+```
+
+Then keep the same guarded import pattern in host code:
+
+```python
+try:
+    from do_i_need_to_upgrade import add_upgrade_command
+except ImportError:
+    add_upgrade_command = None
+
+
+if add_upgrade_command is not None:
+    add_upgrade_command(subparsers, dist_name="your-app")
+```
+
+That gives:
+
+- Python 3.8: dependency omitted and integration skipped.
+- Python 3.9+: dependency required and integration active.
+
 ## Option 2 — the single-file lite build (`diu_lite.py`)
 
 A generated, stdlib-only, ~350-line single file that answers exactly one

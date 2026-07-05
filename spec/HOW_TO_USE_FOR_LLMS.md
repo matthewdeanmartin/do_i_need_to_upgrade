@@ -14,7 +14,7 @@ Real integration means the host app:
 
 ## Minimum integration checklist
 
-1. Add `do_i_need_to_upgrade` as a runtime dependency in the host app's `[project.dependencies]`.
+1. Add `do_i_need_to_upgrade` as a runtime dependency in the host app's `[project.dependencies]` for supported Python versions.
 1. Do not use a local editable path override unless the user explicitly asks for local dogfooding.
 1. Add integrated argparse subcommands with:
    - `add_upgrade_command(...)`
@@ -33,13 +33,27 @@ Real integration means the host app:
 
 At the time of writing, PyPI has `do-i-need-to-upgrade 0.0.1` published.
 
-Use:
+Use this when the host app only supports Python 3.9+:
 
 ```toml
 dependencies = [
     "do_i_need_to_upgrade>=0.0.1",
 ]
 ```
+
+If the host app still ships a Python 3.8 build, make the dependency conditional and
+guard imports/calls in host code:
+
+```toml
+dependencies = [
+    "do_i_need_to_upgrade>=0.0.1; python_version >= '3.9'",
+]
+```
+
+That means:
+
+- Python 3.8: `do_i_need_to_upgrade` is absent and integration is skipped quietly.
+- Python 3.9+: `do_i_need_to_upgrade` is a mandatory runtime dependency.
 
 Do not invent a higher floor unless that version is actually published.
 
@@ -59,33 +73,54 @@ Suggested responsibilities:
 Example shape:
 
 ```python
-from do_i_need_to_upgrade import add_check_command, add_upgrade_command, run_if_upgrade_command
-from do_i_need_to_upgrade.api import check_for_updates
-from do_i_need_to_upgrade.settings import Settings
+from __future__ import annotations
+
+from typing import Any
+
+try:
+    from do_i_need_to_upgrade import add_check_command, add_upgrade_command, run_if_upgrade_command
+    from do_i_need_to_upgrade.api import check_for_updates
+    from do_i_need_to_upgrade.settings import Settings
+except ImportError:  # Python 3.8 build: dependency intentionally not installed
+    add_check_command = None
+    add_upgrade_command = None
+    run_if_upgrade_command = None
+    check_for_updates = None
+    Settings = Any
 
 DIST_NAME = "my_app"
 
 
-def settings() -> Settings:
+def settings() -> Settings | None:
+    if check_for_updates is None:
+        return None
     return Settings(dist_name=DIST_NAME, position="start", notify="return-only")
 
 
 def add_commands(subparsers) -> None:
+    if add_upgrade_command is None or add_check_command is None:
+        return
     active_settings = settings()
     add_upgrade_command(subparsers, DIST_NAME, command="upgrade", settings=active_settings)
     add_check_command(subparsers, DIST_NAME, command="check-updates", settings=active_settings)
 
 
 def run_command(args):
+    if run_if_upgrade_command is None:
+        return None
     return run_if_upgrade_command(args)
 
 
 def startup_report():
+    if check_for_updates is None:
+        return None
     report = check_for_updates(settings=settings())
     return report if not report.is_empty else None
 
 
 def exit_report():
+    if check_for_updates is None:
+        return None
     report = check_for_updates(settings=settings().replace(allow_network=False, notify="return-only"))
     return report if not report.is_empty else None
 ```

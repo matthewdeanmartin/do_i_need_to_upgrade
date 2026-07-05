@@ -96,6 +96,9 @@ see [docs/usage/vendoring.md](https://github.com/matthewdeanmartin/do_i_need_to_
 - **Optional extras in the host app** — keep `do_i_need_to_upgrade` out of the
   base install and offer it behind something like `my-app[all]`. The app
   should quietly skip update-check integration when the extra is not installed.
+- **Python-version marker in the host app** — if the host app still ships a
+  Python 3.8 build, depend on `do_i_need_to_upgrade` only on Python 3.9+ and
+  quietly skip integration when the import is unavailable on 3.8.
 - **`diu_lite.py` vendoring** — a generated, stdlib-only, single-file build
   (`make build-lite`) exposing exactly one function:
   `check_for_updates("your-dist") -> str | None`. Zero dependencies, MIT,

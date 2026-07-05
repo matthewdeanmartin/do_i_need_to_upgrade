@@ -27,20 +27,30 @@ Instead:
 Host-local module example:
 
 ```python
-from do_i_need_to_upgrade.api import check_for_updates
-from do_i_need_to_upgrade.settings import Settings
+try:
+    from do_i_need_to_upgrade.api import check_for_updates
+    from do_i_need_to_upgrade.settings import Settings
+except ImportError:  # Python 3.8 build: dependency intentionally absent
+    check_for_updates = None
+    Settings = None
 
 
-def settings() -> Settings:
+def settings():
+    if Settings is None:
+        return None
     return Settings(dist_name="my_app", position="start", notify="return-only")
 
 
 def startup_report():
+    if check_for_updates is None:
+        return None
     report = check_for_updates(settings=settings())
     return report if not report.is_empty else None
 
 
 def exit_report():
+    if check_for_updates is None:
+        return None
     report = check_for_updates(settings=settings().replace(allow_network=False, notify="return-only"))
     return report if not report.is_empty else None
 ```
@@ -181,7 +191,7 @@ Do not start by editing the core library to import Tkinter directly.
 
 That repo now demonstrates:
 
-- runtime dependency wiring
+- runtime dependency wiring, including the Python 3.8 skip path
 - integrated `upgrade` and `check-updates` subcommands
 - stderr notices
 - scheduled Tkinter popup notice on launch

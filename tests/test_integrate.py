@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import builtins
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -94,3 +96,48 @@ def test_custom_command_name(tmp_path: Path) -> None:
     )
     args = parser.parse_args(["self-update", "--check"])
     assert integrate.run_if_upgrade_command(args) == 0
+
+
+def test_host_can_skip_integration_when_dependency_is_not_installed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A host-side guarded import can no-op cleanly when the package is absent."""
+    real_import = builtins.__import__
+
+    def fake_import(
+        name: str,
+        globals_: dict[str, object] | None = None,
+        locals_: dict[str, object] | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name == "do_i_need_to_upgrade":
+            raise ModuleNotFoundError(name)
+        return real_import(name, globals_, locals_, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    namespace: dict[str, Any] = {}
+    exec(
+        """
+try:
+    from do_i_need_to_upgrade import add_check_command, run_if_upgrade_command
+except ImportError:
+    add_check_command = None
+    run_if_upgrade_command = None
+
+
+def add_commands(subparsers):
+    if add_check_command is None:
+        return "skipped"
+    add_check_command(subparsers, dist_name="my-app")
+    return "installed"
+
+
+def dispatch(args):
+    if run_if_upgrade_command is None:
+        return None
+    return run_if_upgrade_command(args)
+""",
+        namespace,
+    )
+
+    assert namespace["add_commands"](object()) == "skipped"
+    assert namespace["dispatch"](argparse.Namespace()) is None
