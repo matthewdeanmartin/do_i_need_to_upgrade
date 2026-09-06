@@ -47,11 +47,11 @@ include = [
     "do_i_need_to_upgrade/**/*.py",
     "do_i_need_to_upgrade/py.typed",
     "/README.md",
-    "LICENSE",
+    "/LICENSE",
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["/README.md", "LICENSE", "/do_i_need_to_upgrade", "/tests"]
+include = ["/README.md", "/LICENSE", "/do_i_need_to_upgrade", "/tests"]
 
 [dependency-groups]
 dev = [
@@ -62,7 +62,8 @@ dev = [
     "black>=26.0.0; python_version >= '3.11'",
     "isort>=6.0.0; python_version >= '3.11'",
     "jiggle-version>=2.1.0; python_version >= '3.11'",
-    "keepachangelog-manager-fork[all]>=6.6.0; python_version < '3.15'",
+    "keepachangelog-manager-fork[all]>=6.6.0; python_version < '3.15'",  # [all] extra pulls google-re2, no cp315 wheel / fails to build on Windows
+    "keepachangelog-manager-fork>=6.6.0; python_version >= '3.15'",  # base package only; drop [all] extra to avoid google-re2 on 3.15+
     "codespell>=2.4.1; python_version >= '3.11'",
     "mdformat>=1.0.0; python_version >= '3.11'",
     "metametameta>=0.1.5; python_version >= '3.11'",
@@ -78,7 +79,7 @@ dev = [
     "hypothesis>=6.100.0",
     "ruff>=0.12.0",
     "pre-commit>=4.0.0",
-    "pip-audit>=2.7.0; python_version >= '3.11'",
+    "pip-audit>=2.7.0; python_version >= '3.11' and python_version < '3.15'",  # pip-api 0.0.34 vendors pyparsing importing removed sre_constants; crashes at run time on 3.15 (installs/imports fine). audit.py invokes it as a subprocess and already degrades to the next tool (safety) when it produces no output, so this is a dev-tool gap only, not a user-facing regression.
     "tox>=4.0",
     "tox-uv>=1.0",
     "gha-update>=0.1.0; python_version >= '3.12'",
