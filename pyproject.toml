@@ -79,7 +79,7 @@ dev = [
     "hypothesis>=6.100.0",
     "ruff>=0.12.0",
     "pre-commit>=4.0.0",
-    "pip-audit>=2.7.0; python_version >= '3.11' and python_version < '3.15'",  # pip-api 0.0.34 vendors pyparsing importing removed sre_constants; crashes at run time on 3.15 (installs/imports fine). audit.py invokes it as a subprocess and already degrades to the next tool (safety) when it produces no output, so this is a dev-tool gap only, not a user-facing regression.
+    "pip-audit>=2.10.1; python_version >= '3.11'",  # 3.15 OK: pip-api 0.0.35 dropped the sre_constants import
     "tox>=4.0",
     "tox-uv>=1.0",
     "gha-update>=0.1.0; python_version >= '3.12'",
