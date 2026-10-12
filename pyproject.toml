@@ -100,7 +100,7 @@ dev = [
     "refurb>=2.0.0; python_version >= '3.11'",
     "crosshair-tool>=0.0.80",
     "deptry>=0.20.0; python_version >= '3.11'",
-    "import-linter>=2.0; python_version < '3.15'",
+    "import-linter>=2.0",
     "packaging>=23.0",
 ]
 release = [

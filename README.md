@@ -209,3 +209,10 @@ about it.
 - [poetry-plugin-upgrade](https://pypi.org/project/poetry-plugin-upgrade/) upgrades dependency constraints in a
   Poetry-managed project. It is development-time dependency maintenance tooling, not an application runtime self-update
   helper.
+
+
+## Python 3.15 verification (2026-10-04)
+
+104 tests pass on RC3 stable, prerelease-allowed dependencies, and 3.14.7; core installed-wheel and CLI startup pass. No production source changes.
+
+Locks refreshed with `uv lock --upgrade`. Every dependency install used published wheels only in fresh environments; no source builds. Full developer groups still have wheel blockers, so unit-suite success does not certify the full developer setup. Evidence and limits: `C:/github/python315_batch6_2026-10-04.md`. Human operators review and file upstream bugs.
