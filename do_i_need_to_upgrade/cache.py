@@ -11,7 +11,7 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,7 @@ def utcnow() -> datetime:
     Returns:
         Current UTC datetime with timezone info.
     """
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def parse_iso(value: str | None) -> datetime | None:
@@ -47,7 +47,7 @@ def parse_iso(value: str | None) -> datetime | None:
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -61,8 +61,8 @@ def format_iso(dt: datetime) -> str:
         ISO 8601 string with Z suffix.
     """
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 # lite: end time-helpers

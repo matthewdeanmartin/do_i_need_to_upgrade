@@ -14,7 +14,7 @@ import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import NamedTuple
 
 from packaging.version import InvalidVersion, Version
@@ -253,7 +253,7 @@ def parse_version_detail(
             except ValueError:
                 continue
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
+                dt = dt.replace(tzinfo=UTC)
             timestamps.append(dt)
         if timestamps:
             published = min(timestamps)

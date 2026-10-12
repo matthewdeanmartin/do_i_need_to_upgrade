@@ -7,7 +7,7 @@ audit runner into the small public surface documented in __init__.py.
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from packaging.version import InvalidVersion, Version
 
@@ -402,7 +402,7 @@ def run_audit(host: Host | None = None, force: bool = False, settings: Settings 
     cache.save()
 
     return Report(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         host_dist=report.host_dist,
         dependencies=report.dependencies,
         vulnerabilities=tuple(vulns),

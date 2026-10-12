@@ -86,7 +86,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from importlib import metadata
 from pathlib import Path
 

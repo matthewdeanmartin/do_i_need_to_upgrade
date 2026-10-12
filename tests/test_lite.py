@@ -11,7 +11,7 @@ import importlib.util
 import json
 import sys
 import sysconfig
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from pathlib import Path
 from types import ModuleType
 
@@ -130,7 +130,7 @@ def test_lite_kill_switch(lite: ModuleType, tmp_path: Path, monkeypatch: pytest.
 def test_lite_shared_helpers_roundtrip(lite: ModuleType) -> None:
     """The extracted time helpers behave like the package originals."""
     now = lite.utcnow()
-    assert now.tzinfo == timezone.utc
+    assert now.tzinfo == UTC
     parsed = lite.parse_iso(lite.format_iso(now))
     assert parsed is not None
     assert abs(now - parsed) < timedelta(seconds=1)

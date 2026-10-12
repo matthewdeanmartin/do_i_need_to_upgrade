@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TextIO
 
 
@@ -102,7 +102,7 @@ class Vulnerability:
 class Report:
     """Top-level result returned by check_for_updates / run_audit."""
 
-    generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     host_dist: VersionInfo | None = None
     dependencies: tuple[VersionInfo, ...] = ()
     vulnerabilities: tuple[Vulnerability, ...] = ()
