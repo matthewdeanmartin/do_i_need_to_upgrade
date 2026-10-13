@@ -20,6 +20,6 @@ __readme__ = "README.md"
 __credits__ = [{"name": "Matthew Martin", "email": "matthewdeanmartin@gmail.com"}]
 __keywords__ = ["do_i_need_to_upgrade", "upgrade", "self-update", "pypi", "update-checker"]
 __license__ = "MIT"
-__requires_python__ = ">=3.10"
-__status__ = "3 - Alpha"
-__dependencies__ = ["packaging>=23.0", "tomli>=2.0.1; python_version < '3.11'"]
+__requires_python__ = ">=3.11"
+__status__ = "1 - Planning"
+__dependencies__ = ["packaging>=23.0"]

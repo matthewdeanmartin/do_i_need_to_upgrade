@@ -48,10 +48,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
     Returns:
         Parsed table, or {} if unreadable/unparseable/unsupported.
     """
-    try:
-        import tomllib  # pylint: disable=import-outside-toplevel
-    except ImportError:
-        import tomli as tomllib  # pylint: disable=import-outside-toplevel
+    import tomllib  # pylint: disable=import-outside-toplevel
     try:
         with path.open("rb") as fh:
             data = tomllib.load(fh)
